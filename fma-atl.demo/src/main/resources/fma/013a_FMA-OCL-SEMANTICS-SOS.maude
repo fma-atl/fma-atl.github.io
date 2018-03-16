@@ -1,0 +1,588 @@
+mod FMA-OCL-SYNTAX is
+  extending FMA-SEMANTICS .
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  sort OclExpInv .
+  subsort OclExpInv < Expr .
+  
+  
+  op `(_`)_ : FmaType OclExp -> OclExpInv .
+  
+    
+endm
+
+mod FMA-OCL-TYPE-INFERENCE is
+  extending FMA-OCL-SYNTAX .
+  
+  var OCLE : OclExp .
+  var ALPHA : Scalar .
+  var TE : Map{VarExpr,FmaType} . 
+  var VAR : VarExpr .
+  var STMT : Stmt .
+  vars FC C : QualifiedCid .
+
+  
+  
+  
+  
+  
+
+***( commented until type inference is fixed 23-06-2017  
+  eq [T-OclExpInv] : TE |- (BT:BaseTypeName) OCLE = BT:BaseTypeName .
+  eq [T-OclExpInv] : TE |- (C) OCLE = ref(C) .
+)
+endm
+
+mod FMA-OCL-TYPE-CHECKER is
+  protecting FMA-OCL-TYPE-INFERENCE .
+  
+  
+endm
+
+mod FMA-OCL-SEMANTICS-SOS is
+  including FMA-OCL-TYPE-CHECKER .
+  
+  
+  op exprModel : VarExpr IObjectSet Map{QualifiedCid,Oid} Map{QualifiedCid,OuterMap} -> K .
+  
+    
+  eq initK( iOS:IObjectSet, var(VAR:Map{VarExpr,ValueExpr}) new(QNEW:Map{QualifiedCid,Oid}) loc(QLOC:Map{QualifiedCid,OuterMap}), S:Stmt ) =
+  fmaK(
+    env(var(VAR:Map{VarExpr,ValueExpr}) new(QNEW:Map{QualifiedCid,Oid}) loc(QLOC:Map{QualifiedCid,OuterMap}))
+  |
+    model(iOS:IObjectSet)
+  |
+    extExprK(exprModel(var("QUERY"), iOS:IObjectSet, QNEW:Map{QualifiedCid,Oid}, QLOC:Map{QualifiedCid,OuterMap}))
+
+
+
+
+  |
+    stmt(S:Stmt)
+  ) .
+  
+  
+  op evalOcl : OclExp IObjectSet Env -> OclType .
+  eq evalOcl( OCLE:OclExp, OS1:IObjectSet, (var(VAR:Map{VarExpr,ValueExpr}) loc(QLOC:Map{QualifiedCid,OuterMap}) E:Env) ) = 
+  	eval(OCLE:OclExp, getModclConfiguration(OS1:IObjectSet, var(VAR:Map{VarExpr,ValueExpr}) loc(QLOC:Map{QualifiedCid,OuterMap}))) .
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  var K K' : K .
+  var E : Env .
+  var iOS : IObjectSet .
+  var L : Location .
+  vars V V' : ValueExpr .
+  var OCLE : OclExp .
+  var E2 : Env .
+  var VAR : VarExpr .
+  var VAL : ValueExpr .
+  var OCLVAR : Vid .
+  var OCLVAL : OclType .
+  var OCLENV : List{VarPair} .
+  var VN : String .
+  var VVM VVM2 : Map{VarExpr,ValueExpr} .
+  var I I2 : Int .
+  var F : Float .
+  var S : String .
+  var B : Bool . 
+  var O : Oid .
+  var IS : IOidSet .
+  var OclL : List{OclExp} .
+  var N1 N2 : Nat .
+  
+
+
+  
+  op oclVar : String -> Vid .
+  
+  
+  
+  
+  
+  
+  op fmaEnvToOclEnv : Env -> Msg .
+  eq fmaEnvToOclEnv(E) = env(fmaEnvToOclEnv(E, nil)) .
+
+  op fmaEnvToOclEnv : Env List{VarPair} -> List{VarPair} .
+  eq fmaEnvToOclEnv( var( (var("self") |-> val(O), VVM) ), LV:List{VarPair} ) = 
+    fmaEnvToOclEnv(VVM, (self <- O) LV:List{VarPair}) .
+  eq fmaEnvToOclEnv( var(VVM), LV:List{VarPair}  ) = 
+    fmaEnvToOclEnv( VVM, ((self <- foo-self) LV:List{VarPair}) ) 
+  [owise] .  
+
+  op fmaEnvToOclEnv : Map{VarExpr,ValueExpr} List{VarPair} -> List{VarPair} .
+  eq fmaEnvToOclEnv( empty, LV:List{VarPair} ) = LV:List{VarPair} . 
+  eq fmaEnvToOclEnv( (VAR |-> VAL, VVM), LV:List{VarPair} ) = 
+    fmaEnvToOclEnv(
+        VVM, 
+        (fmaVarToOclVar( VAR ) <- fmaValToOclVal( VAL )) LV:List{VarPair}
+    ) .
+  
+  op fmaValToOclVal : ValueExpr -> OclType .
+  eq fmaValToOclVal( val(I) ) = I .
+  eq fmaValToOclVal( val(S) ) = S .
+  eq fmaValToOclVal( val(B) ) = B .
+  eq fmaValToOclVal( val(F) ) = F .
+  eq fmaValToOclVal( val(literal(S)) ) = literal(S) .
+  eq fmaValToOclVal( val(oid(C,I3:Int)) ) = oid(C,I3:Int) .
+
+  
+  eq fmaValToOclVal( ref(IS) ) = Sequence{ fmaValToOclVal( IS, 0, mt-ord ) } .
+  
+  eq fmaValToOclVal( val(OS) ) = Sequence{ fmaValToOclVal( OS, 0, mt-ord ) } . 
+  
+  
+  
+  op fmaValToOclVal : IObjectSet Int List{OclExp} -> List{OclExp} .
+  eq fmaValToOclVal( (empty).IObjectSet, I, OclL ) = OclL . 
+  eq fmaValToOclVal( (I |-> sentinel).IObjectSet, I, OclL ) = OclL .
+   
+  eq fmaValToOclVal( (I |-> { prop("_id") = val(O), PS }) OS, I, OclL ) = 
+    fmaValToOclVal( OS, I +N 1, (O, OclL) ) . 
+  
+  
+  ceq fmaValToOclVal( (I2 |-> sentinel).IObjectSet OS, I, OclL ) = 
+    fmaValToOclVal( OS (I2 |-> sentinel).IObjectSet, I +N 1, OclL ) 
+  if OS [I] == undefIObject .
+
+
+  op fmaValToOclVal : IOidSet Int List{OclExp} -> List{OclExp} .
+  eq fmaValToOclVal( (empty).IOidSet, I, OclL ) = OclL . 
+  eq fmaValToOclVal( (I |-> sentinel).IOidSet, I, OclL ) = OclL . 
+  
+  eq [fmaValToOclVal-oid-matched] : fmaValToOclVal( (I |-> oid(C,I3:Int)) IS, I, OclL ) = 
+    fmaValToOclVal( IS, I +N 1, (oid(C,I3:Int), OclL) ) .
+  
+  
+  ceq [fmaValToOclVal-oid-not-matched] : fmaValToOclVal( IS (I2 |-> sentinel).IOidSet, I, OclL ) = 
+    fmaValToOclVal( IS (I2 |-> sentinel).IOidSet, I +N 1, OclL ) 
+  if IS [I] == undefIOid .
+
+
+  op fmaVarToOclVar : VarExpr -> Vid .
+  eq fmaVarToOclVar( var(VN) ) = oclVar(VN) .
+
+
+  
+  
+  op oclEnvToFmaEnv : Msg -> Env .
+  eq oclEnvToFmaEnv( env(OCLENV) ) = var(oclEnvToFmaEnv(OCLENV, empty)) . 
+  
+  op oclEnvToFmaEnv : List{VarPair} Map{VarExpr,ValueExpr} -> Map{VarExpr,ValueExpr} .
+  eq oclEnvToFmaEnv( nil, VVM ) = VVM . 
+  eq oclEnvToFmaEnv( (OCLVAR <- OCLVAL) OCLENV, VVM) = 
+    oclEnvToFmaEnv(OCLENV, (oclVarToFmaVar( OCLVAR ) |-> oclValToFmaVal( OCLVAL ), VVM)) .
+  
+  op oclVarToFmaVar : Vid -> VarExpr .
+  eq oclVarToFmaVar( oclVar(VN) ) = var(VN) .
+  
+  op oclValToFmaVal : OclType ~> ValueExpr .
+  eq oclValToFmaVal( I ) = val(I) .
+  eq oclValToFmaVal( F ) = val(F) .
+  eq oclValToFmaVal( S ) = val(S) .
+  eq oclValToFmaVal( B ) = val(B) .
+  eq oclValToFmaVal( literal(S) ) = val(literal(S)) .
+  eq oclValToFmaVal( O ) = val(O) .
+  eq oclValToFmaVal( OCLOS:Collection ) = ref( oclValToFmaVal(OCLOS:Collection,0,empty) ) .
+  
+  op oclValToFmaVal : Collection Nat IOidSet ~> IOidSet .
+
+  eq oclValToFmaVal( Set{ mt-ord }, N:Nat, IS ) = (N:Nat |-> sentinel) IS . 
+  eq oclValToFmaVal( Set{ O, L:List{OclExp} }, N:Nat, IS ) = 
+     oclValToFmaVal( Set{ L:List{OclExp} }, N:Nat +N 1, (N:Nat |-> O) IS ) . 
+
+  eq oclValToFmaVal( OrderedSet{ mt-ord }, N:Nat, IS ) = (N:Nat |-> sentinel) IS . 
+  eq oclValToFmaVal( OrderedSet{ O, L:List{OclExp} }, N:Nat, IS ) = 
+     oclValToFmaVal( OrderedSet{ L:List{OclExp} }, N:Nat +N 1, (N:Nat |-> O) IS ) . 
+
+  eq oclValToFmaVal( Bag{ mt-ord }, N:Nat, IS ) = (N:Nat |-> sentinel) IS . 
+  eq oclValToFmaVal( Bag{ O, L:List{OclExp} }, N:Nat, IS ) = 
+     oclValToFmaVal( Bag{ L:List{OclExp} }, N:Nat +N 1, (N:Nat |-> O) IS ) . 
+
+  eq oclValToFmaVal( Sequence{ mt-ord }, N:Nat, IS ) = (N:Nat |-> sentinel) IS . 
+  eq oclValToFmaVal( Sequence{ O, L:List{OclExp} }, N:Nat, IS ) = 
+     oclValToFmaVal( Sequence{ L:List{OclExp} }, N:Nat +N 1, (N:Nat |-> O) IS ) . 
+***(  
+  eq oclValToFmaVal( OCLOS:Sequence ) = ref( oclValToFmaVal(OCLOS:Sequence,0,empty) ) .
+  
+  op oclValToFmaVal : Sequence Nat IOidSet ~> IOidSet .
+  eq oclValToFmaVal( Sequence{ mt-ord }, N:Nat, IS ) = (N:Nat |-> sentinel) IS . 
+  eq oclValToFmaVal( Sequence{ O, L:List{OclExp} }, N:Nat, IS ) = 
+     oclValToFmaVal( Sequence{ L:List{OclExp} }, N:Nat +N 1, (N:Nat |-> O) IS ) . 
+)
+
+  
+  op isSafeValue : OclType Scalar -> Bool .
+  eq isSafeValue(I:Int, DSL#Int) = true .
+  eq isSafeValue(S:String, DSL#String) = true .
+  eq isSafeValue(B:Bool, DSL#Bool) = true .
+***( commented until type inference is fixed 23-06-2017  
+  ceq isSafeValue(O, C) = true
+  if (empty |- val(O) : ref(C)) : TJudgement .
+  eq isSafeValue(Sequence{mt-ord}, C) = true . 
+  ceq isSafeValue(Sequence{O, L:List{OclExp}}, C) = 
+  	isSafeValue(Sequence{L:List{OclExp}}, C)
+  if (empty |- val(O) : ref(C)) : TJudgement .
+  eq isSafeValue(RES:OclType, T:Scalar) = 
+    if isFmaAtl? then true else false fi [owise] .
+)    
+  
+  
+  
+  
+  var OLM : Map{QualifiedCid,OuterMap} .
+  var IOBJ : IObject .
+  var OS : IObjectSet .
+  var C : QualifiedCid .
+  var PS : PropSet .
+  var P : PropName .
+  var CF : Configuration .
+
+  
+  
+  op state : IObjectSet -> Msg [ctor] .
+  
+
+
+  
+  
+  eq eval-allInstances(C, oclLoc(OLM) CF, S:Set ) =
+  	eval-allInstances(C, OLM, S:Set ) .
+	
+  op eval-allInstances : QualifiedCid Map{QualifiedCid,OuterMap} Set -> Set .  
+  eq [allInstances-match] : 
+    eval-allInstances(C, (C |-> OM:Map{Nat,InnerMap}, OLM), S:Set ) 
+  =
+    eval-allInstances(C, OLM, includeOids( OM:Map{Nat,InnerMap}, S:Set) ) .
+    
+  ceq [allInstances-subtype] : 
+    eval-allInstances(
+      MTN:ModelTypeName ! C1:Cid, 
+      ((MTN:ModelTypeName ! C2:Cid) |-> OM:Map{Nat,InnerMap}, OLM), 
+      S:Set 
+    ) 
+  =
+    eval-allInstances(
+      MTN:ModelTypeName ! C1:Cid, 
+      OLM, 
+      includeOids(OM:Map{Nat,InnerMap}, S:Set) 
+    ) 
+  if C1:Cid =/= C2:Cid 
+  /\ 
+  isSubtypeOf(MTN:ModelTypeName ! C2:Cid,MTN:ModelTypeName ! C1:Cid,sr(MTN:ModelTypeName)) .
+  
+  
+  eq eval-allInstances(C, OLM, S:Set ) = S:Set [owise] .
+
+  op includeOids : Map{Nat,InnerMap} Set -> Set .
+  eq includeOids(
+    (
+      N1 |-> (
+        N2 |-> L,
+        IMLoc:Map{Nat,Location}
+      ),
+      OMLoc:Map{Nat,InnerMap}
+    ),
+    S:Set
+  ) = 
+    includeOids(
+      (
+        N1 |-> (
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ),
+      include(deepestOid(L), S:Set)
+    ) .
+  eq includeOids(OMLoc:Map{Nat,InnerMap}, S:Set) = S:Set [owise] .
+
+***(
+  op includeOids : Map{Nat,InnerMap} Set -> Set .
+  eq includeOids(empty, S:Set) = S:Set .
+  eq includeOids(
+    (
+      N1 |-> IMLoc:Map{Nat,Location},
+      OMLoc:Map{Nat,InnerMap}
+    ),
+    S:Set
+  ) = 
+    includeOids(
+      OMLoc:Map{Nat,InnerMap},
+      includeOidsInnerMap(IMLoc:Map{Nat,Location}, S:Set)
+    ) .
+  
+  op includeOidsInnerMap : Map{Nat,Location} Set -> Set .
+  eq includeOidsInnerMap(empty, S:Set) = S:Set .
+  eq includeOidsInnerMap(
+    (
+      N2 |-> L,
+      IMLoc:Map{Nat,Location}
+    ),
+    S:Set
+  ) = 
+    includeOidsInnerMap(
+      IMLoc:Map{Nat,Location},
+      include(deepestOid(L), S:Set)
+    ) .
+
+
+
+)
+
+
+
+
+
+
+
+  
+  
+  op eval-allInstances-Seq : Cid Configuration Sequence -> Sequence . 
+  eq eval-allInstances-Seq(C, oclLoc(OLM) CF, S:Sequence ) =
+    eval-allInstances-Seq(C, OLM, S:Sequence ) .
+  
+  op eval-allInstances-Seq : QualifiedCid Map{QualifiedCid,OuterMap} Sequence -> Sequence .  
+  eq [allInstances-Seq-match] : 
+    eval-allInstances-Seq(C, (C |-> OM:Map{Nat,InnerMap}, OLM), S:Sequence ) 
+  =
+    eval-allInstances-Seq(C, OLM, includeOids-Seq( OM:Map{Nat,InnerMap}, S:Sequence) ) .
+    
+  ceq [allInstances-Seq-subtype] : 
+    eval-allInstances-Seq(
+      MTN:ModelTypeName ! C1:Cid, 
+      ((MTN:ModelTypeName ! C2:Cid) |-> OM:Map{Nat,InnerMap}, OLM), 
+      S:Sequence 
+    ) 
+  =
+    eval-allInstances-Seq(
+      MTN:ModelTypeName ! C1:Cid, 
+      OLM, 
+      includeOids-Seq(OM:Map{Nat,InnerMap}, S:Sequence) 
+    ) 
+  if C1:Cid =/= C2:Cid 
+  /\ 
+  isSubtypeOf(MTN:ModelTypeName ! C2:Cid,MTN:ModelTypeName ! C1:Cid,sr(MTN:ModelTypeName)) .
+  
+
+  eq eval-allInstances-Seq(C, OLM, S:Sequence ) = S:Sequence [owise] .
+
+
+  op includeOids-Seq : Map{Nat,InnerMap} Sequence -> Sequence .
+  eq includeOids-Seq(
+    (
+      N1 |-> (
+        N2 |-> L,
+        IMLoc:Map{Nat,Location}
+      ),
+      OMLoc:Map{Nat,InnerMap}
+    ),
+    S:Sequence
+  ) = 
+    includeOids-Seq(
+      (
+        N1 |-> (
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ),
+      include(deepestOid(L), S:Sequence)
+    ) .
+  eq includeOids-Seq(OMLoc:Map{Nat,InnerMap}, S:Sequence) = S:Sequence [owise] .
+***(
+  
+  eq eval-allInstances(C, ((oid(C,S:String) |-> L:Location), OLM), S:Set ) =
+    eval-allInstances(C, OLM, include(oid(C,S:String),S:Set) ) .
+    
+  ceq eval-allInstances(MTN:ModelTypeName ! C1:Cid, ((oid(MTN:ModelTypeName ! C2:Cid,S:String) |-> L:Location), OLM), S:Set ) =
+    eval-allInstances(MTN:ModelTypeName ! C1:Cid, OLM, include(oid(MTN:ModelTypeName ! C2:Cid,S:String), S:Set) ) 
+  if C1:Cid =/= C2:Cid /\ isSubtypeOf(MTN:ModelTypeName ! C2:Cid,MTN:ModelTypeName ! C1:Cid,sr(MTN:ModelTypeName)) .
+)
+  
+  
+	
+	
+	
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  subsort PropName < AttributeName .
+  op oclLoc : Map{QualifiedCid,OuterMap} -> Msg [ctor] .
+  
+
+***(
+  ceq get-attr((O . P), (state(OS) oclLoc(OLM) CF)) = 
+  	getPropertyValue(P, getValue(IOBJ)) 
+  if
+    L:Location := OLM [O]
+  /\
+    < OS2:IObjectSet ; IOBJ > := unplug(OS,L:Location) .
+  
+  op getPropertyValue : PropName Object -> OclType .
+  eq getPropertyValue( P, { P = VAL, PS } ) = fmaValToOclVal(VAL) .
+)
+
+  
+  ceq get-attr((O . P), (state(OS) oclLoc(OLM) CF)) = 
+    fmaValToOclVal(VAL)
+  if
+    L:Location := get(O, OLM)
+  /\
+    < OS2:IObjectSet ; I |-> { P = VAL, PS } > := unplug(OS,L:Location) .
+
+  
+
+
+
+
+  
+
+***(  
+  
+  ceq get-class(O , state(OS) oclLoc(OLM) CF) = 
+  	fmaTypeToOclType((empty |- getValue(IOBJ)))
+  if
+    L:Location := OLM [O]
+  /\
+    < OS2:IObjectSet ; IOBJ > := unplug(OS,L:Location) .
+)
+  
+  eq get-class(O , CF) = getCid(O) .
+  
+  
+  op fmaTypeToOclType : FmaType ~> QualifiedCid .
+  eq fmaTypeToOclType( C ) = C .
+  eq fmaTypeToOclType( DSL#String ) = String .
+  eq fmaTypeToOclType( DSL#Int ) = Integer .
+  eq fmaTypeToOclType( DSL#Bool ) = Boolean .
+  
+  
+  
+  
+  op getModclConfiguration : IObjectSet Env -> Configuration [memo] .
+  eq getModclConfiguration( OS, var(VVM) loc(OLM) E:Env ) =
+  	state(OS) oclLoc(OLM) fmaEnvToOclEnv(var(VVM)) .
+  	
+  	
+  
+  crl [E-OclExpInv] :
+    exprK(
+      EK:K 
+      | exprEnv(var(VAR:Map{VarExpr,ValueExpr}) E1:Env) 
+      | exprModel(V:VarExpr, OS1:IObjectSet, QNEW:Map{QualifiedCid,Oid}, QLOC:Map{QualifiedCid,OuterMap}) 
+      | expr( (T:Scalar) OCLE:OclExp )
+    )
+  => 
+    exprK(output(oclValToFmaVal(RES:OclType)))
+  if
+    
+    
+    RES:OclType := eval(OCLE:OclExp, getModclConfiguration(OS1:IObjectSet, var(VAR:Map{VarExpr,ValueExpr}) loc(QLOC:Map{QualifiedCid,OuterMap})))
+  . 
+***( commented until type inference is fixed 23-06-2017 
+  /\
+    isSafeValue(RES:OclType, T:Scalar) .
+)  	
+
+
+  	
+
+
+
+
+
+***(
+  
+  
+  crl [E-SetAtt-StringOclExp] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = val(S:String), PS) | stmt(set(P, (DSL#String) OCLE:OclExp)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = V', PS) | stmt( () ))
+  if 
+    exprK(EK:K | exprEnv(E) | expr((DSL#String) OCLE:OclExp)) => exprK(output(V')) .
+
+  crl [E-SetAtt-OclExp-Int] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = val(I:Int), PS) | stmt(set(P, (DSL#Int) OCLE:OclExp)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = V', PS) | stmt( () ))
+  if 
+    exprK(EK:K | exprEnv(E) | expr((DSL#Int) OCLE:OclExp)) => exprK(output(V')) .
+
+  crl [E-SetAtt-OclExp-Bool] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = val(B:Bool), PS) | stmt(set(P, (DSL#Bool) OCLE:OclExp)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = V', PS) | stmt( () ))
+  if 
+    exprK(EK:K | exprEnv(E) | expr((DSL#Bool) OCLE:OclExp)) => exprK(output(V')) .
+
+  
+
+  
+  
+  crl [E-RefSet-OclExp] :
+    fmaK(K | extExprK(EK:K) | env(E) | ps(P = ref(IS:IOidSet), PS) | stmt(set(P, ((SCALAR:Scalar) OCLE:OclExp) )))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    exprK(EK:K | exprEnv(E) | expr( (SCALAR:Scalar) OCLE:OclExp )) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK:K) | env(E) | ps(P = ref(IS:IOidSet), PS) | stmt(set(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+  
+  
+  crl [E-CmtSet-OclExp] :
+    fmaK(K | extExprK(EK:K) | env(E) | ps(P = val(OS:IObjectSet), PS) | stmt(setCmt(P, ((SCALAR:Scalar) OCLE:OclExp) )))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    exprK(EK:K | exprEnv(E) | expr( (SCALAR:Scalar) OCLE:OclExp )) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK:K) | env(E) | ps(P = val(OS:IObjectSet), PS) | stmt(setCmt(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+)
+
+  	  
+endm
+
+

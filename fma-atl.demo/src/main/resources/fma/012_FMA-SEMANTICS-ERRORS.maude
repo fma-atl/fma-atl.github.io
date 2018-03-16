@@ -1,0 +1,457 @@
+mod FMA-SEMANTICS-ERRORS is 
+  inc FMA-SEMANTICS-DESTRUCTIVE .
+
+  vars E E' E'' E1 E2 : Env .
+  vars MVar2Val MVar2Val' : Map{VarExpr,ValueExpr} .
+  vars MOid2Loc MOid2Loc1 MOid2Loc2 MOid2Loc3 MOid2Loc4 MOid2Loc' MOid2LocNewObject OIDM LOCM LOCM' LOCM2 : Map{QualifiedCid,OuterMap} .
+  var MCid2Oid MCid2OidNewObject : Map{QualifiedCid,Oid} . 
+  var O O1 O2 O3 O4 O5 O6 O7 O8 O9 O10 : Oid . 
+  var iO : IOid .
+  var OIDSET : OidSet . 
+  vars Obj Obj1 Obj2 Obj' Obj'' Obj''' : Object .
+  vars PS1 PS1' PS2 PS2' PS PS' PS'' : PropSet .
+  var P P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 : PropName .
+  var OS OS1 OS2 OS3 iOS iOS' iOS1 iOS2 iOS3 iOS4 OSCTX : IObjectSet .
+  var iObj iObj2 : IObject .
+  var IS : IOidSet .
+  var C : QualifiedCid .
+  vars L L' L'' L1 L2 : Location .
+  var EP : EnvP .
+  vars X X' : VarExpr .
+  vars V V' V1 V2 : ValueExpr .
+  var I I' I1 I2 I3 OID : Int .
+  var N : Nat .
+  var String ERRORTYPE DESC : String .
+  var B : Bool .
+  var BT : BaseTypeName .
+  var ProcName : ProcName .
+  var ParamList : ParamList .
+  var EXPR EXPR1 EXPR2 : Expr .
+  var ProcType : ProcType .
+  vars ArgList ArgList1 ArgList2 : ArgList .
+  var Arg : Argument .
+  var K K1 K2 K' K'' : K .
+  var OSP : ObjSetPair .
+  var BRS : Map{BiRefEnd,BiRefEnd} .
+  var ERROR : StmtError .
+  
+  var S S' S1 S1' S2 : Stmt .
+  var SV : StmtValue .
+  
+  var VARM : Map{VarExpr,ValueExpr} .
+  
+  var NEWM : Map{QualifiedCid,Oid} .
+  var MTN : ModelTypeName .
+  var SC : Cid .
+  vars SAIS SAIS1 SAIS2 SAIS3 SAIS' SAIS'' : IActionSet .
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+
+  
+  
+  
+  
+  
+
+  crl [E-RefSetError] : 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(set(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(error("Dangling reference", "Referenced object could not be found", set(P,X))))
+  if 
+    val(O) := E [ X ]  
+  /\ 
+	isUndef(E [[ O ]]) .
+
+  crl [E-RefSetErrorCmt] : 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(set(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(error("Opposite of containment", "Cannot update opposite to a containment", set(P,X))))
+  if 
+    O2 := deepestOid(L)
+  /\
+  	
+    P2 := op(getCid(O2),P) .
+
+
+
+  
+  crl [E-RefUnsetError1] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | stmt(error("Dangling reference", "Referenced object could not be found", unset(P,X)))) 
+  if 
+    val(O) := E [ X ] 
+  /\
+  	isUndef(E [[ O ]]) .	
+	
+  crl [E-RefUnseterror] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | stmt(error("Dangling reference", "Reference not found in object under focus", unset(P,X)))) 
+  if 
+    val(O) := E [ X ] 
+  /\
+  	isDef(E [[ O ]]) 
+  /\ 
+    hasElement(IS,O) == false .
+
+  crl [E-RefUnsetErrorCmt] : 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(error("Opposite of containment", "Cannot update opposite to a containment", unset(P,X))))
+  if 
+    O2 := deepestOid(L)
+  /\
+  	
+    P2 := op(getCid(O2),P) .
+	
+	
+	
+	
+	
+	  
+
+  crl [E-CmtSetError] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(PS) | stmt(setCmt(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(PS) | stmt(error("Dangling reference", "Referenced object could not be found", setCmt(P,X)))) 
+  if
+    val(O) := E [ X ]
+  /\
+    isUndef(E [[ O ]]) .
+
+  crl [E-CmtSetErrorHoist] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(iOS), PS) | stmt(setCmt(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(iOS), PS) | stmt(error("Containment issue", "An object contained by the object under focus cannot be hoisted. Consider moving it to an external container object in order to hoist it along the containment hierarchy under the object under focus.", setCmt(P,X)))) 
+  if
+    val(O) := E [ X ]
+  /\
+    isDef(E [[ O ]]) 
+  /\
+    L . L1 := E [[ O ]] .
+    
+    
+    
+
+  
+  
+
+  
+  crl [E-CmtUnsetErrorRef1] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(PS) | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(PS) | stmt(error("Dangling reference", "Referenced object could not be found", unset(P,X)))) 
+  if 
+    val(O) := E [ X ] 
+  /\
+  	isUndef(E [[ O ]]) .
+
+  crl [E-CmtUnsetErrorRef2] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(iOS), PS) | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(iOS), PS) | stmt(error("Dangling reference", "Reference could not be found in the object under focus.", unset(P,X)))) 
+  if 
+    val(O) := E [ X ] 
+  /\
+  	isDef(E [[ O ]]) 
+  /\
+    hasObject(iOS,O) == false .
+
+  
+  crl [E-CmtUnsetErrorIso] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(((I |-> { prop("_id") = val(O), PS }) iOS)), PS') | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(((I |-> { prop("_id") = val(O), PS }) iOS)), PS') | stmt(error("Dangling reference", "Referenced object is not isolated", unset(P,X)))) 
+  if 
+    val(O) := E [ X ] 
+  /\
+  	isDef(E [[ O ]])
+  /\
+    isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == false .
+
+     
+     
+     
+     
+     
+     
+     
+ 
+
+
+  crl [E-ActSnapshotErrorProp] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | pendingActions(SAIS) | stmt(snapshot X { S }))
+  => 
+    fmaK(K' | env(E') | model(iOS') | focus(L'') | ps(PS2) | stmt(ERROR))
+  if
+    val(O) := E [ X ]    
+  /\
+    L' := E [[ O ]] 
+  /\
+    
+    < iOS1 ; I |-> { PS1 } > := unplug(0 |-> { PS } , L')   
+  /\
+      
+      fmaK(K | env(E) | model(iOS) | focus(L') | ps(PS1) | pendingActions(SAIS) | stmt(S))    
+    => 
+      fmaK(K' | env(E') | model(iOS') | focus(L'') | ps(PS2) | pendingActions(SAIS') | stmt(ERROR)) .
+
+
+  crl [E-ActSnapshotErrorRef] :
+    fmaK(K | env(E) | model(iOS) | stmt(snapshot X { S }))
+  => 
+    fmaK(K | env(E) | model(iOS) | stmt( error("Dangling reference", "The object under focus cannot be found", snapshot X { S }) ))
+  if
+    val(O) := E [ X ]    
+  /\
+    isUndef(E [[ O ]]) .      
+     
+     
+     
+
+     
+
+         
+  crl [E-ActLetStmtErrorProp] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(PS) | stmt(let X = EXPR in S ))
+  => 
+    fmaK(K' | env(var(MVar2Val') E') | model(iOS') | extExprK(EK:K) | focus(L') | ps(PS') | stmt(ERROR))
+  if 
+    var(MVar2Val) loc(MOid2Loc) new(MCid2Oid) := E
+  /\  
+    exprK(EK:K | exprEnv(E) | expr(EXPR)) => exprK(output(V))
+  /\
+      fmaK(K | env(var(insert(X,V,MVar2Val)) loc(MOid2Loc) new(MCid2Oid)) | model(iOS) | extExprK(EK:K) | focus(L) | ps(PS) | stmt(S)) 
+    =>
+      fmaK(K' | env(var(MVar2Val') E') | model(iOS') | extExprK(EK:K) | focus(L') | ps(PS') | stmt(ERROR)) .
+
+  crl [E-ActLetExprError] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(PS) | stmt(let X = EXPR in S ))
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(PS) | stmt(error(M:String,D:String,let X = EXPR in S)))
+  if 
+    exprK(EK:K | exprEnv(E) | expr(EXPR)) =>  exprK(output(error(M:String,D:String,EXPR2:Expr))) .
+
+
+
+  crl [E-ActLetCreateErrorProp] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | stmt(let X = create(P, C) in S))
+  => 
+    fmaK(K' | env(var(MVar2Val') E') | model(iOS') | focus(L') | ps(PS') | stmt(ERROR))
+  if 
+    var(MVar2Val) loc(MOid2Loc) new(MCid2Oid) := E
+  /\  
+    
+    
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(PS) | stmt(create(P, C)))
+    =>
+    fmaK(K' | env(loc(MOid2LocNewObject) new(MCid2OidNewObject) E2) | model(iOS) | focus(L) | ps(PS2) | stmt( () ))
+  /\
+    
+    oid(C,N) := MCid2OidNewObject [ C ] 
+  /\
+      
+      
+      fmaK(env(var(insert(X,val(oid(C,N -N 1)),MVar2Val)) loc(MOid2LocNewObject) new(MCid2OidNewObject)) | model(iOS) | focus(L) | ps(PS2) | stmt(S)) 
+    =>
+      fmaK(env(var(MVar2Val') E') | model(iOS') | focus(L') | ps(PS') | stmt(ERROR)) .
+
+  
+
+  
+
+
+
+  crl [E-ActNextErrorProp] : 
+    fmaK(K | stmt(() ; S2)) 
+  => 
+    fmaK(K1 | stmt(ERROR)) 
+  if 
+    fmaK(K | stmt(S2))
+  => 
+    fmaK(K1 | stmt(ERROR))  .
+
+  crl [E-ActSeqErrorProp1] : 
+    fmaK(K | stmt(ACTS1:SingletonStmt ; S2)) 
+  => 
+    fmaK(K1 | stmt(ERROR)) 
+  if 
+    fmaK(K | stmt(ACTS1:SingletonStmt))
+  => 
+    fmaK(K1 | stmt(ERROR))  .
+
+  crl [E-ActSeqErrorProp2] : 
+    fmaK(K | stmt(ACTS1:SingletonStmt ; S2)) 
+  => 
+    fmaK(K2 | stmt(ERROR)) 
+  if 
+    fmaK(K | stmt(ACTS1:SingletonStmt))
+  => 
+    fmaK(K1 | stmt( () ))
+  /\
+    fmaK(K1 | stmt(S2))
+  => 
+    fmaK(K2 | stmt(ERROR))  .
+  
+  
+
+  
+  
+  
+  
+  
+
+  crl [E-DeleteRootErrorIso] :
+    fmaK(K | env(E) | model((I |-> { prop("_id") = val(O), PS }) iOS1) | stmt(delete(X)))  
+  => 
+    fmaK(K | env(E) | model((I |-> { prop("_id") = val(O), PS }) iOS1) | stmt( error("Dangling reference", "The referenced object is not isolated", delete(X)) )) 
+  if
+    val(O) := E [ X ]
+  /\
+    isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == false .
+  
+
+
+  crl [E-DeleteRootErrorRef] :
+    fmaK(K | env(E) | model(iOS1) | stmt(delete(X)))  
+  => 
+    fmaK(K | env(E) | model(iOS1) | stmt( error("Dangling reference", "The referenced object cannot be found", delete(X)) )) 
+  if
+  	val(O) := E [ X ]
+  /\
+  	not(hasRootLocation(O,E)) .
+  
+
+         
+  crl [E-FmaLetStmtErrorProp] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | stmt(let X = EXPR in S ))
+  => 
+    fmaK(K | env(E') | model(iOS') | extExprK(EK:K) | stmt(ERROR))
+  if 
+    var(MVar2Val) loc(MOid2Loc) new(MCid2Oid) := E
+  /\
+    exprK(EK:K |  exprEnv(E) | expr(EXPR)) => exprK(output(V))
+  /\
+      fmaK(K | env(var(insert(X,V,MVar2Val)) loc(MOid2Loc) new(MCid2Oid)) | model(iOS) | extExprK(EK:K) | stmt(S)) 
+    =>
+      fmaK(K' | env(E') | model(iOS') | extExprK(EK:K) | stmt(ERROR)) .
+
+
+  crl [E-FmaLetExprErrorProp] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | stmt(let X = EXPR in S ))
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | stmt(error(M:String,D:String,let X = EXPR in S)))
+  if 
+    exprK(EK:K |  exprEnv(E) | expr(EXPR)) =>  exprK(output(error(M:String,D:String,EXPR2:Expr))) .
+
+
+  crl [E-FmaLetCreateError] :
+    fmaK(K | env(E) | model(iOS1) | stmt(let X = create(C) in S ))
+  => 
+    fmaK(K' | env(var(MVar2Val') E') | model(iOS3) | stmt(ERROR))
+  if 
+    var(MVar2Val) loc(MOid2Loc) new(MCid2Oid) := E
+  /\  
+    
+    
+    fmaK(K | env(E) | model(iOS1) | stmt(create(C)))
+    =>
+    fmaK(K' | env(loc(MOid2LocNewObject) new(MCid2OidNewObject) E2) | model(iOS2) | stmt(()))
+  /\
+    
+    oid(C,N) := MCid2OidNewObject [ C ] 
+  /\
+      
+      
+      fmaK(env(var(insert(X,val(oid(C,N -N 1)),MVar2Val)) loc(MOid2LocNewObject) new(MCid2OidNewObject)) | model(iOS2) | stmt(S)) 
+    =>
+      fmaK(env(var(MVar2Val') E') | model(iOS3) | stmt(ERROR)) .
+
+
+
+  crl [E-FmaSnapshotErrorRef] :
+    fmaK(K | env(E) | model(iOS) | stmt(snapshot X { S }))
+  => 
+    fmaK(K | env(E) | model(iOS) | stmt( error("Dangling reference", "The object under focus cannot be found", snapshot X { S }) ))
+  if
+    val(O) := E [ X ]    
+  /\
+    isUndef(E [[ O ]]) .  
+  
+  
+  crl [E-FmaSnapshotErrorProp] :
+    fmaK(K | env(E) | model(iOS) | stmt(snapshot X { S }))
+  => 
+    
+    
+    
+    
+    
+    
+    
+    fmaK(K' | env(E') | model(iOS') | stmt(error(ERRORTYPE, DESC, S)))
+  if
+    
+    val(O) := E [ X ]    
+  /\
+    L' := E [[ O ]] 
+  /\
+    < iOS1 ; (I |-> Obj) > := unplug(iOS,L') 
+  /\
+      fmaK(K | env(E) | model(iOS1) | focus(L') | ps(ps(Obj)) | pendingActions(empty) | stmt(S))
+    => 
+      fmaK(K' | env(E') | model(iOS') | focus(L'') | ps(PS') | pendingActions(SAIS) | stmt(error(ERRORTYPE, DESC, S))) .
+
+
+  crl [E-FmaNextErrorProp] : 
+    fmaK(K | stmt(() ; S2)) 
+  => 
+    fmaK(K1 | stmt(ERROR)) 
+  if 
+    fmaK(K | stmt(S2))
+  => 
+    fmaK(K1 | stmt(ERROR))  .
+
+  crl [E-FmaSeqErrorProp1] : 
+    fmaK(K | stmt(S1:SingletonStmt ; S2)) 
+  => 
+    fmaK(K1 | stmt(ERROR)) 
+  if 
+    fmaK(K | stmt(S1:SingletonStmt))
+  => 
+    fmaK(K1 | stmt(ERROR))  .
+  
+
+  crl [E-FmaSeqErrorProp2] : 
+    fmaK(K | stmt(S1:SingletonStmt ; S2)) 
+  => 
+    fmaK(K2 | stmt(ERROR)) 
+  if 
+  	fmaK(K | stmt(S1:SingletonStmt))
+  => 
+    fmaK(K1 | stmt( () ))
+  /\
+    fmaK(K1 | stmt(S2))
+  => 
+    fmaK(K2 | stmt(ERROR))  .
+  
+  
+endm
+
+
+
+
+
+
+
+

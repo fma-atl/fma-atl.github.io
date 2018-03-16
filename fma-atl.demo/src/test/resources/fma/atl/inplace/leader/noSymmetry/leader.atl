@@ -1,0 +1,61 @@
+-- @atlcompiler atl2010
+-- @path Network=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/leader/Network.ecore
+module leader;
+create OUT: Network refining IN: Network;
+
+rule cMsg {
+	from 
+		p : Network!Process (
+			p.active='false'
+		)
+	using {
+		n : Network!Network = p.owner ;
+	}
+	to
+		p__ref : Network!Process (
+			active <- 'true'
+		),
+		n__ref : Network!Network (
+			messages <- m
+		),
+		m : Network!Message (
+			mID <- p.pID,
+			at <- p.next
+		)
+}
+
+
+rule dMsg {
+	from 
+		m : Network!Message (
+			(m.at.active='true' and m.mID > m.at.pID)
+			or
+			m.at.leader = 'true'	
+		)
+	to
+		drop	
+}
+
+rule prop {
+	from 
+		m : Network!Message (
+			m.at.active='true' and m.mID < m.at.pID
+		)
+	to
+		m__ref : Network!Message (
+			at <- m.at.next
+		)
+}
+
+
+rule select {
+	from 
+		p : Network!Process (
+			p.active='true' and p.leader='false' and p.owner.messages->exists(m | m.at=p and  m.mID=p.pID)
+		)
+	to
+		p__ref : Network!Process (
+			leader <- 'true'
+		)
+}
+

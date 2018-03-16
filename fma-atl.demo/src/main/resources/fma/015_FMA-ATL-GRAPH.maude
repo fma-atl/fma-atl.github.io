@@ -1,0 +1,1216 @@
+fmod EMF-GRAPH-ELEMENTS is
+  sort EmfNode .
+  sort EmfEdge .
+endfm
+
+view EmfNode from TRIV to EMF-GRAPH-ELEMENTS is
+  sort Elt to EmfNode .
+endv 
+
+view EmfEdge from TRIV to EMF-GRAPH-ELEMENTS is
+  sort Elt to EmfEdge .
+endv
+
+mod FMA-ATL-TRACE is
+  including FMA-ATL-SYNTAX .
+
+  sort LinkTarget .
+  
+  
+  sort LinkSource .
+  
+  op linkSource : Oid ValueExpr -> LinkSource [ctor] .
+  
+  op linkTarget : ValueExpr Oid -> LinkTarget [ctor] .
+endm
+
+view LinkSource from TRIV to FMA-ATL-TRACE is
+  sort Elt to LinkSource .
+endv
+
+view LinkTarget from TRIV to FMA-ATL-TRACE is
+  sort Elt to LinkTarget .
+endv
+
+
+
+
+mod TRACE-MAP is
+  including FMA-MAP{LinkSource,LinkTarget} .
+endm
+
+view Trace from TRIV to TRACE-MAP is
+  sort Elt to Map{LinkSource,LinkTarget} .
+endv
+
+
+mod INNER-TRACE-MAP is
+  inc FMA-MAP{Nat,Trace} .
+
+  var TM : Map{LinkSource,LinkTarget} .
+  var M : Map{Nat,Trace} .
+  var N : Nat .
+  var LS : LinkSource .
+  var LT : LinkTarget . 
+
+  op put : Nat LinkSource LinkTarget Map{Nat,Trace} -> Map{Nat,Trace} .
+  ceq put(N, LS, LT, M) =
+    insert(N, LS |-> LT, M)
+  if 
+    M [ N ] == undefined .
+  ceq put(N, LS, LT, M) =
+    insert(N, insert(LS,LT,TM), M)
+  if 
+    TM := M [ N ] .
+  
+endm
+
+
+view InnerTraceMap from TRIV to INNER-TRACE-MAP is
+  sort Elt to Map{Nat,Trace} .
+endv
+
+mod OUTER-TRACE-MAP is
+  inc FMA-MAP{Nat,InnerTraceMap} .
+  
+  var M : Map{Nat,InnerTraceMap} .
+  var IM IM2 : Map{Nat,Trace} .
+  var N : Nat .
+  var LS : LinkSource .
+  var LT : LinkTarget .
+  
+  op put : Nat LinkSource LinkTarget Map{Nat,InnerTraceMap} -> Map{Nat,InnerTraceMap} .
+  ceq put( N, LS, LT, M ) = 
+    insert( N quo 100, IM2, M ) 
+  if 
+    M [ N quo 100 ] == undefined 
+  /\ 
+    IM2 := put(N rem 100, LS, LT, empty) .
+
+  ceq put( N, LS, LT, M ) = 
+    insert( N quo 100, IM2, M ) 
+  if 
+    IM := M [ N quo 100 ] 
+  /\ 
+    IM2 := put(N rem 100, LS, LT, IM) .
+    
+
+
+  op get : Nat Map{Nat,InnerTraceMap} -> Map{LinkSource,LinkTarget} .
+  ceq get( N, M ) = IM [ N rem 100 ] 
+  if
+    IM := M [ N quo 100 ] .
+  
+endm
+
+view OuterTraceMap from TRIV to OUTER-TRACE-MAP is
+  sort Elt to Map{Nat,InnerTraceMap} .
+endv
+
+mod STRUCTURED-TRACE-MAP is
+  inc FMA-MAP{QualifiedCid,OuterTraceMap} .
+
+  var M : Map{QualifiedCid,OuterTraceMap} .
+  var OM OM2 : Map{Nat,InnerTraceMap} .
+  var IM IM2 : Map{Nat,Trace} .
+  var TM : Map{LinkSource,LinkTarget} .
+  var N N1 N2 : Nat .
+  var C : QualifiedCid .
+  var V : ValueExpr .
+  var LS : LinkSource .
+  var LT : LinkTarget .
+  
+  op put : LinkSource LinkTarget Map{QualifiedCid,OuterTraceMap} -> Map{QualifiedCid,OuterTraceMap} .
+  ceq put( LS, LT, M ) = 
+    insert( C, OM2, M ) 
+  if
+    linkSource(oid(C, N), V) := LS 
+  /\
+    M [ C ] == undefined
+  /\
+    OM2 := put( N, LS, LT, empty ) .  
+  ceq put( LS, LT, M ) = 
+    insert( C, OM2, M ) 
+  if
+    linkSource(oid(C, N), V) := LS 
+  /\
+    OM := M [ C ]
+  /\
+    OM2 := put( N, LS, LT, OM ) .  
+  
+  op get : LinkSource Map{QualifiedCid,OuterTraceMap} -> LinkTarget .
+  ceq get( LS, M ) = get(N,OM) [ LS ]
+  if 
+    linkSource(oid(C, N), V) := LS 
+  /\
+    OM := M [ C ] .
+
+  eq (undefined).Map{LinkSource,LinkTarget} [ LS ] = undefined .
+
+
+
+
+
+  op merge : Map{QualifiedCid,OuterTraceMap} Map{QualifiedCid,OuterTraceMap} -> Map{QualifiedCid,OuterTraceMap} .
+  eq merge(
+    MLOC1:Map{QualifiedCid,OuterTraceMap},
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> (LS |-> LT),
+          IMLoc:Map{Nat,Trace}
+        ),
+        OMLoc:Map{Nat,InnerTraceMap}
+      ), 
+      MLOC2:Map{QualifiedCid,OuterTraceMap}
+    )
+  ) =
+    merge(
+      put(LS, LT, MLOC1:Map{QualifiedCid,OuterTraceMap}),
+      (
+        C |-> (
+          N1 |-> (
+            IMLoc:Map{Nat,Trace}
+          ),
+          OMLoc:Map{Nat,InnerTraceMap}
+        ), 
+        MLOC2:Map{QualifiedCid,OuterTraceMap}
+      ) 
+    ) .
+  eq merge(MLOC1:Map{QualifiedCid,OuterTraceMap}, MLOC2:Map{QualifiedCid,OuterTraceMap}) = MLOC1:Map{QualifiedCid,OuterTraceMap} [owise] .
+
+
+endm
+
+
+
+mod EMF-GRAPH is
+  including STRUCTURED-TRACE-MAP . 
+  
+  extending OCL-SET{EmfNode} .
+  extending OCL-SET{EmfEdge} .
+
+
+
+
+  var P : PropName .
+  vars VAR SVAR TVAR VAR2 : VarExpr .
+  var CT : QualifiedCid .
+  vars NS NS1 NS2 : Set{EmfNode} .
+  var ES ES1 ES2 : Set{EmfEdge} .
+  vars EXPR EXPR1 EXPR2 : Expr .
+  var SCALAR : Scalar .
+  vars OCLE BOCLE : OclExp .
+  var STMT : Stmt .
+
+
+
+
+  
+  
+  
+  
+  op node : QualifiedCid VarExpr VarExpr -> EmfNode [ctor] .
+  
+  
+  op nodeDrop : VarExpr VarExpr -> EmfNode [ctor] .
+  op nodeDrop : VarExpr Expr PropName VarExpr -> EmfNode [ctor] .
+  op nodeUpdate : QualifiedCid VarExpr VarExpr -> EmfNode [ctor] .
+  
+  
+  op edge : VarExpr PropName Expr -> EmfEdge [ctor] .
+  op cmt : VarExpr PropName Expr -> EmfEdge [ctor] .
+  
+  
+  sort EmfGraph .
+  op emfGraph : Set{EmfNode} Set{EmfEdge} -> EmfGraph [ctor] .
+  
+  
+  sorts CausalityDependency CausalityRelation .
+  op __ : CausalityRelation CausalityRelation -> CausalityRelation [ctor comm assoc id: noDeps] .
+  op noDeps : -> CausalityRelation [ctor] .
+  subsort CausalityDependency < CausalityRelation .
+  op _<_ : VarExpr VarExpr -> CausalityDependency [ctor] .
+  
+  op _notIn_ : CausalityDependency CausalityRelation -> Bool .
+  eq CD:CausalityDependency notIn (CD:CausalityDependency CR:CausalityRelation) = false .
+  eq CD:CausalityDependency notIn CR:CausalityRelation = true [owise] .
+
+  op transitiveClosure : CausalityRelation -> CausalityRelation .
+  ceq transitiveClosure( (A:VarExpr < B:VarExpr) (B:VarExpr < C:VarExpr) CR:CausalityRelation ) = 
+  	transitiveClosure( (A:VarExpr < B:VarExpr) (B:VarExpr < C:VarExpr) (A:VarExpr < C:VarExpr) CR:CausalityRelation)
+  if (A:VarExpr < C:VarExpr) notIn CR:CausalityRelation  . 
+  eq transitiveClosure( CR:CausalityRelation ) = CR:CausalityRelation [owise] . 
+  
+
+
+
+
+  
+
+
+  
+  
+  
+  
+  
+  op isRoot : VarExpr EmfGraph -> Bool .
+  eq isRoot(VAR, emfGraph(NS, (ES, cmt(SVAR,P,VAR)))) = false .
+  eq isRoot(VAR, EG:EmfGraph) = true [owise] .
+
+
+  
+  
+  
+  
+  op extractCmtPoset : EmfGraph -> EmfGraph .
+  eq extractCmtPoset( emfGraph(NS,ES) ) = 
+    emfGraph( NS, extractCmtPoset( ES, empty ) ) .
+
+  op extractCmtPoset : Set{EmfEdge} Set{EmfEdge} -> Set{EmfEdge} .  
+  eq extractCmtPoset( 
+    (
+      cmt(VAR, P, EXPR),
+      ES1:Set{EmfEdge}
+    ),
+    ES2
+  ) = 
+    extractCmtPoset( 
+      ES1:Set{EmfEdge},
+      (getCmts( cmt(VAR, P, EXPR), EXPR), ES2)
+    ) .
+  eq extractCmtPoset( ES1:Set{EmfEdge}, ES2 ) = 
+    (ES1:Set{EmfEdge}, ES2) [owise] .
+
+  op getCmts : EmfEdge Expr -> Set{EmfEdge} .
+  
+  eq getCmts( cmt(VAR, P, EXPR), TVAR ) =
+    cmt(VAR, P, TVAR) .
+  
+  eq getCmts( cmt(VAR, P, EXPR), let VAR2 = EXPR1 in EXPR2 ) =
+    (
+        getCmts( cmt(VAR, P, EXPR), EXPR1 ), 
+        getCmts( cmt(VAR, P, EXPR), EXPR2 ) 
+    ) .
+  
+  eq getCmts( cmt(VAR, P, EXPR), resolveTemp(AUX:VarExpr,VAL:ValueExpr) ) =
+    empty .
+  
+  ceq getCmts( cmt(VAR, P, EXPR), (SCALAR) OCLE ) =
+    (
+        cmt(VAR, P, EXPR2),
+        getCmts( cmt(VAR, P, EXPR), OCLE ) 
+    )
+  if 
+    EXPR2 := deleteVars(EXPR)
+  /\
+    EXPR2 =/= (SCALAR) Sequence{ mt-ord } .
+  ceq getCmts( cmt(VAR, P, EXPR), (SCALAR) OCLE ) =
+    (
+        getCmts( cmt(VAR, P, EXPR), OCLE ) 
+    )
+  if 
+    (SCALAR) Sequence{ mt-ord } := deleteVars(EXPR) .
+  
+  eq getCmts( cmt(VAR, P, EXPR), LRIE:LazyRuleInvExpr ) =
+    cmt(VAR, P, EXPR) .
+
+  
+  op getCmts : EmfEdge OclExp -> Set{EmfEdge} .
+  
+  
+  
+  eq getCmts( cmt(VAR, P, EXPR), Sequence{ oclVar(TV:String), L:List{OclExp} } ) =
+    (
+      cmt(VAR, P, var(TV:String)),
+      getCmts( cmt(VAR, P, EXPR), Sequence{ L:List{OclExp} } ) 
+    ) .
+  
+  eq getCmts( cmt(VAR, P, EXPR), OCLE -> OPN:Name1 ( BOCLE ) ) =  
+    getCmts( cmt(VAR, P, EXPR), OCLE ) .  
+  eq getCmts( cmt(VAR, P, EXPR), OCLE -> ITN:IteratorName ( PL:List{OclExp} | BOCLE ) ) =  
+    getCmts( cmt(VAR, P, EXPR), OCLE ) .
+
+  eq getCmts( cmt(VAR, P, EXPR), OCLE ) = empty [owise] .
+
+
+
+
+  
+  op deleteVars : Expr -> Expr .
+  eq deleteVars( TVAR ) = TVAR .
+  eq deleteVars( let VAR2 = EXPR1 in EXPR2 ) = 
+    let VAR2 = deleteVars(EXPR1) in deleteVars(EXPR2) .
+  eq deleteVars( resolveTemp(AUX:VarExpr,VAL:ValueExpr) ) =
+    (resolveTemp(AUX:VarExpr,VAL:ValueExpr)) .
+  eq deleteVars( (SCALAR) OCLE ) = (SCALAR) deleteVars(OCLE) .
+
+  op deleteVars : OclExp -> OclExp .
+  eq deleteVars( Sequence{ oclVar(TV:String), L:List{OclExp} } ) = 
+    deleteVars( Sequence{ L:List{OclExp} } ) .
+  eq deleteVars( OCLE -> OPN:Name1 ( BOCLE )  ) =  
+    deleteVars( OCLE ) -> OPN:Name1 ( BOCLE ) .
+  eq deleteVars( OCLE -> ITN:IteratorName ( PL:List{OclExp} | BOCLE ) ) =  
+    deleteVars( OCLE ) -> ITN:IteratorName ( PL:List{OclExp} | BOCLE ) .
+  eq deleteVars( OCLE ) = OCLE [owise] .
+
+
+  
+  
+  
+  
+  
+  op diff : EmfGraph EmfGraph -> EmfGraph .
+  
+  eq diff( emfGraph(((node(CT, MN1:VarExpr, VAR), NS), NS1), ES1), emfGraph(((node(CT, MN2:VarExpr, VAR), NS), NS2), ES2) ) = 
+    diff( emfGraph(NS1, ES1), emfGraph(NS2, ES2) ) .
+  eq diff( emfGraph((N:EmfNode, NS1), ES1), emfGraph((N:EmfNode, NS2), ES2) ) = 
+    diff( emfGraph(NS1, ES1), emfGraph(NS2, ES2) ) .    
+  eq diff( emfGraph(NS1, (E:EmfEdge, ES1)), emfGraph(NS2, (E:EmfEdge, ES2)) ) = 
+    diff( emfGraph(NS1, ES1), emfGraph(NS2, ES2) ) .
+  eq diff( emfGraph(NS1, ES1), emfGraph(NS2, ES2) ) = emfGraph(NS1, ES1) [owise] .
+    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  op getFmaObjectTree : EmfGraph -> Stmt .
+
+  
+  ceq getFmaObjectTree( C:EmfGraph ) = STMT:Stmt
+  if () ; STMT:Stmt := getFmaObjectTree( C:EmfGraph, empty, () ) .
+
+  eq getFmaObjectTree( C:EmfGraph ) = 
+    getFmaObjectTree( C:EmfGraph, empty, () ) .
+
+
+
+  
+  op getFmaObjectTree : EmfGraph Set{EmfNode} Stmt -> Stmt .
+  
+  
+  eq getFmaObjectTree(
+    emfGraph(
+      (empty),
+      (ES)
+    ),
+    NS2, 
+    STMT
+  ) = STMT [label "getFmaObjectTree-basis"] .
+    
+ 
+  ceq getFmaObjectTree(
+    C:EmfGraph,
+    NS2, 
+  	STMT
+  ) =
+    (if (isRoot(VAR,C:EmfGraph)) then
+      if (hasChildren(VAR,ES)) then
+        getFmaObjectTree(
+    	  	emfGraph( NS, ES ),
+    	  	NS2, 
+    	  	STMT ; let VAR = create(CT) in snapshot(VAR) { 
+            
+            
+            getSnapshotFmaCmts(VAR, emfGraph( (NS,NS2) , ES ))  
+          } 
+    	  ) ;
+        getFmaObjectGraph(
+          emfGraph( NS, ES ),
+          NS2, 
+          snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) 
+          } 
+        )
+      else 
+        getFmaObjectTree(
+          emfGraph( NS, ES ),
+          NS2, 
+          STMT ; let VAR = create(CT) in ()
+        ) ;
+        getFmaObjectGraph(
+          emfGraph( NS, ES ),
+          NS2, 
+          snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) 
+          } 
+        ) 
+      fi
+    else
+      getFmaObjectTree(
+        emfGraph( NS, ES ),
+        (node(CT, MN:VarExpr, VAR), NS2), 
+        STMT 
+      ) 
+    fi) 
+  if 
+    emfGraph(
+      (node(CT, MN:VarExpr, VAR), NS),
+      ES
+    ) := C:EmfGraph
+  [label "getFmaObjectTree-node"] .   
+   
+  
+  eq getFmaObjectTree(
+    emfGraph(
+      (nodeDrop(MN:VarExpr, VAR), NS),
+      ES
+    ),
+    NS2, 
+    STMT
+  ) = getFmaObjectTree(
+    emfGraph( NS, ES ),
+    NS2,
+    STMT ; delete(VAR)
+  ) [label "getFmaObjectTree-drop-root"] .
+  
+  eq getFmaObjectTree(
+    emfGraph(
+      (nodeDrop(MN:VarExpr, O:Expr, P:PropName, VAR), NS),
+      ES
+    ),
+    NS2, 
+    STMT
+  ) = getFmaObjectTree(
+    emfGraph( NS, ES ),
+    NS2,
+    STMT ; let var("OWNER") = O:Expr in snapshot(var("OWNER")) { unset(P:PropName, VAR) }
+  ) [label "getFmaObjectTree-drop-containedObject"] .
+  
+  ceq getFmaObjectTree(
+    C:EmfGraph,
+    NS2, 
+    STMT
+  ) =
+    (if (isRoot(VAR,C:EmfGraph)) then
+      if (hasChildren(VAR,ES)) then
+        getFmaObjectTree(
+          emfGraph( NS, ES ),
+          NS2, 
+          STMT ; snapshot(VAR) { 
+            
+            
+            getSnapshotFmaCmts(VAR, emfGraph( (NS,NS2) , ES ))  
+          } 
+        ) ;
+        getFmaObjectGraph(
+          emfGraph( NS, ES ),
+          NS2, 
+          snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) 
+          } 
+        )
+      else 
+        getFmaObjectTree(
+          emfGraph( NS, ES ),
+          NS2, 
+          STMT 
+        ) ;
+        getFmaObjectGraph(
+          emfGraph( NS, ES ),
+          NS2, 
+          snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) 
+          } 
+        ) 
+      fi
+    else
+      getFmaObjectTree(
+        emfGraph( NS, ES ),
+        (nodeUpdate(CT, MN:VarExpr, VAR), NS2), 
+        STMT 
+      ) 
+    fi) 
+  if 
+    emfGraph(
+      (nodeUpdate(CT, MN:VarExpr, VAR), NS),
+      ES
+    ) := C:EmfGraph
+  [label "getFmaObjectTree-update"] .   
+
+
+
+***(
+
+  
+  
+  
+  
+  op orderStmt : CausalityRelation Stmt -> Stmt .
+  
+  eq orderStmt( CR:CausalityRelation, let VAR = create(CT) in STMT ) =
+  	let VAR = create(CT) in orderStmt( CR:CausalityRelation, STMT ) . 
+  
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	STMT1:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; snapshot SVAR { ASTMT2:Stmt } 
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	STMT1:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; snapshot TVAR { ASTMT1:Stmt } 
+	  ) .
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	snapshot TVAR { ASTMT1:Stmt } ; snapshot SVAR { ASTMT2:Stmt } ; STMT2:Stmt
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	snapshot SVAR { ASTMT2:Stmt } ; snapshot TVAR { ASTMT1:Stmt } ; STMT2:Stmt
+	  ) .
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	STMT1:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; snapshot SVAR { ASTMT2:Stmt } ; STMT2:Stmt
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	STMT1:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; snapshot TVAR { ASTMT1:Stmt } ; STMT2:Stmt
+	  ) .
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	STMT1:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; STMT3:Stmt ; snapshot SVAR { ASTMT2:Stmt } 
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	STMT1:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; STMT3:Stmt ; snapshot TVAR { ASTMT1:Stmt } 
+	  ) .
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	snapshot TVAR { ASTMT1:Stmt } ; STMT3:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; STMT2:Stmt
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	snapshot SVAR { ASTMT2:Stmt } ; STMT3:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; STMT2:Stmt
+	  ) .  
+  
+  eq orderStmt( 
+  	(SVAR < TVAR) CR:CausalityRelation,
+  	STMT1:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; STMT3:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; STMT2:Stmt
+  ) = 
+  	  orderStmt( 
+	  	(SVAR < TVAR) CR:CausalityRelation,
+	  	STMT1:Stmt ; snapshot SVAR { ASTMT2:Stmt } ; STMT3:Stmt ; snapshot TVAR { ASTMT1:Stmt } ; STMT2:Stmt
+	  ) .  
+
+  eq orderStmt( CR:CausalityRelation, STMT ) = STMT [owise] .
+)  
+
+  
+
+  
+  
+  
+  
+  
+  op getSnapshotFmaCmts : VarExpr EmfGraph -> Stmt .
+  
+  ceq getSnapshotFmaCmts( SVAR, C:EmfGraph ) =
+    ASTMT:Stmt
+  if 
+    ASTMT:Stmt ; () := getFmaCmts( SVAR, C:EmfGraph, 0) .
+  
+  eq getSnapshotFmaCmts( SVAR, C:EmfGraph ) =
+    getFmaCmts( SVAR, C:EmfGraph, 0) [owise] .
+
+
+  op getFmaCmts : VarExpr EmfGraph Nat -> Stmt .
+
+***(      
+  
+  
+  ceq getFmaCmts( SVAR, emfGraph(NS, (edge(SVAR, P, thisModule . RN:ProcName( AL:ArgList ) ), ES)), N:Nat ) =
+    let var(X:String) = lazyRuleInvStmt(RN:ProcName,AL:ArgList) in set(P, var(X:String)) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaCmts( SVAR, emfGraph(NS, (edge(SVAR, P, resolveTemp(EXPR, V:ValueExpr) ), ES)), N:Nat ) =
+    let var(X:String) = resolveTemp(EXPR, V:ValueExpr) in set(P, var(X:String)) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+  
+  eq getFmaCmts( SVAR, emfGraph(NS, (edge(SVAR, P, T:Expr), ES)), N:Nat ) =
+    set(P, T:Expr) ; getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat ) 
+  [owise] . 
+)
+
+  
+  
+  
+  eq getFmaCmts( 
+    SVAR, 
+    emfGraph((node(CT,D:VarExpr,TVAR), NS), (cmt(SVAR, P, TVAR), ES)), 
+    N:Nat 
+  ) =
+    if (hasChildren(TVAR, ES)) then
+      let TVAR = create(P, CT) in
+      snapshot( TVAR ) { 
+        
+        getSnapshotFmaCmts(TVAR, emfGraph(NS, ES ))
+      }; 
+      getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat ) 
+    else
+      let TVAR = create(P, CT) in () ;
+      getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat )
+    fi .
+
+  op hasChildren : VarExpr Set{EmfEdge} -> Bool .
+  eq hasChildren(VAR, (cmt(VAR, P, EXPR), ES)) = true .
+  eq hasChildren(VAR, ES) = false [owise] .
+
+  
+***(  
+  ceq getFmaCmts( SVAR, emfGraph(NS, (cmt(SVAR, P, thisModule . RN:ProcName( AL:ArgList ) ), ES)), N:Nat ) =
+    let var(X:String) = lazyRuleInvStmt(RN:ProcName,AL:ArgList) in setCmt(P, var(X:String)) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+)
+  
+  
+  ceq getFmaCmts( SVAR, emfGraph(NS, (cmt(SVAR, P, thisModule . RN:ProcName( VAR ) ), ES)), N:Nat ) =
+    setCmtLazyRule( P, RN:ProcName, VAR ) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+  
+  ceq getFmaCmts( SVAR, emfGraph(NS, (cmt(SVAR, P, EXPR -> collect( VAR | thisModule . RN:ProcName( VAR )) ), ES)), N:Nat ) =
+    setCmtLazyRule( P, RN:ProcName, EXPR ) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+
+
+
+  ceq getFmaCmts( SVAR, emfGraph(NS, (cmt(SVAR, P, resolveTemp(EXPR, V:ValueExpr) ), ES)), N:Nat ) =
+    let var(X:String) = (resolveTemp(EXPR, V:ValueExpr)) in setCmt(P, var(X:String)) ; 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+  
+  
+  ceq getFmaCmts( 
+    SVAR, 
+    emfGraph(NS, (cmt(SVAR, P, EXPR), ES)), 
+    N:Nat 
+  ) =
+    setCmt(P, EXPR); 
+    getFmaCmts( SVAR, emfGraph(NS, ES), N:Nat ) 
+  if
+    isFmaCmtOther(EXPR) .
+
+  eq getFmaCmts( SVAR, C:EmfGraph, N:Nat ) = () [owise] .
+
+  op isFmaCmtOther : Expr -> Bool .
+  eq isFmaCmtOther( resolveTemp(EXPR, V:ValueExpr) ) = false .
+  eq isFmaCmtOther( EXPR:Expr ) = true [owise] .
+
+
+***(  
+
+  These equations are redundant
+  
+  
+  ceq getFmaCmts( (edge(SVAR, P, T:OclExpInv), ES), N:Nat ) =
+    let var(X:String) = T:OclExpInv in set(P, var(X:String)) ; getFmaCmts( ES, N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaCmts( (edge(SVAR, P, T:ProcCallExpr), ES), N:Nat ) =
+    let var(X:String) = T:ProcCallExpr in set(P, var(X:String)) ; getFmaCmts( ES, N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaCmts( (edge(SVAR, P, T:LetExpr), ES), N:Nat ) =
+    let var(X:String) = T:LetExpr in set(P, var(X:String)) ; getFmaCmts( ES, N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+  
+
+
+  
+  ceq getFmaCmts( (edge(SVAR, P, thisModule . RN:ProcName(EXPR) ), ES), N:Nat ) =
+    let var(X:String) = lazyRuleInvStmt(RN:ProcName,EXPR) in set(P, var(X:String)) ; getFmaCmts( ES, N:Nat +N 1 ) 
+  if 
+    X:String := string(N:Nat,10) . 
+
+)
+
+  
+
+  
+  
+
+  op getFmaObjectGraph : EmfGraph -> Stmt .
+
+  
+  ceq getFmaObjectGraph( C:EmfGraph ) = STMT:Stmt
+  if () ; STMT:Stmt := getFmaObjectGraph( C:EmfGraph, empty, () ) .
+
+  eq getFmaObjectGraph( C:EmfGraph ) = 
+    getFmaObjectGraph( C:EmfGraph, empty, () ) [owise] .
+
+
+
+  
+  op getFmaObjectGraph : EmfGraph Set{EmfNode} Stmt -> Stmt .
+  
+  
+  eq getFmaObjectGraph(
+    emfGraph(
+      (empty),
+      (ES)
+    ),
+    NS2, 
+    STMT
+  ) = STMT .
+    
+ 
+  ceq getFmaObjectGraph(
+    C:EmfGraph,
+    NS2, 
+    STMT
+  ) =
+    if (isRoot(VAR,C:EmfGraph)) then
+      
+      getFmaObjectGraph(
+        emfGraph( NS, ES ),
+        NS2, 
+        STMT
+***(
+
+        if (getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) =/= ()) then
+          STMT ; snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) )
+          }
+        else
+          STMT 
+        fi 
+)
+      ) 
+    else
+      
+      getFmaObjectGraph(
+        emfGraph( NS, ES ),
+        (node(CT, MN:VarExpr, VAR), NS2), 
+        STMT 
+      )
+    fi
+  if 
+    emfGraph(
+      (node(CT, MN:VarExpr, VAR), NS),
+      ES
+    ) := C:EmfGraph
+  .   
+
+
+  
+  ceq getFmaObjectGraph(
+    C:EmfGraph,
+    NS2, 
+    STMT
+  ) =
+    if (isRoot(VAR,C:EmfGraph)) then
+      
+      getFmaObjectGraph(
+        emfGraph( NS, ES ),
+        NS2, 
+
+        STMT
+***(
+
+        if (getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) ) =/= ()) then
+          STMT ; snapshot(VAR) { 
+            
+            
+            getFmaSnapshotAttsRefs( VAR, emfGraph( (NS,NS2) , ES ) )
+          }
+        else
+          STMT 
+        fi 
+)
+      ) 
+    else
+      
+      getFmaObjectGraph(
+        emfGraph( NS, ES ),
+        (nodeUpdate(CT, MN:VarExpr, VAR), NS2), 
+        STMT 
+      )
+    fi
+  if 
+    emfGraph(
+      (nodeUpdate(CT, MN:VarExpr, VAR), NS),
+      ES
+    ) := C:EmfGraph
+  . 
+  
+  
+  eq getFmaObjectGraph(
+    emfGraph(
+      (nodeDrop(MN:VarExpr, VAR), NS),
+      ES
+    ),
+    NS2, 
+    STMT
+  ) = getFmaObjectGraph(
+    emfGraph( NS, ES ),
+    NS2,
+    STMT 
+  ) .
+
+  eq getFmaObjectGraph(
+    emfGraph(
+      (nodeDrop(MN:VarExpr, V:ValueExpr, P:PropName, VAR), NS),
+      ES
+    ),
+    NS2, 
+    STMT
+  ) = getFmaObjectGraph(
+    emfGraph( NS, ES ),
+    NS2,
+    STMT 
+  ) .
+
+
+  
+  
+  
+  op getFmaSnapshotAttsRefs : VarExpr EmfGraph -> Stmt .  
+  
+  ceq getFmaSnapshotAttsRefs( SVAR, C:EmfGraph ) = ASTMT:Stmt
+  if ASTMT:Stmt ; () := getFmaAttsRefs( SVAR, C:EmfGraph, 0 ) .
+  
+  eq getFmaSnapshotAttsRefs( SVAR, C:EmfGraph ) = 
+    getFmaAttsRefs( SVAR, C:EmfGraph, 0 ) [owise] .
+
+  op getFmaAttsRefs : VarExpr EmfGraph Nat -> Stmt .
+	  	
+  
+  
+  
+***(  
+  ceq getFmaAttsRefs( SVAR, emfGraph(NS, (edge(SVAR, P, thisModule . RN:ProcName( AL:ArgList ) ), ES)), N:Nat ) =
+  	let var(X:String) = lazyRuleInvStmt(RN:ProcName,AL:ArgList) in set(P, var(X:String)) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+)
+
+  
+  ceq getFmaAttsRefs( SVAR, emfGraph(NS, (edge(SVAR, P, resolveTemp(EXPR, V:ValueExpr) ), ES)), N:Nat ) =
+  	let var(X:String) = (resolveTemp(EXPR, V:ValueExpr)) in set(P, var(X:String)) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaAttsRefs( SVAR, emfGraph(NS, (edge(SVAR, P, T:Expr), ES)), N:Nat ) =
+    set(P, T:Expr) ; getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat ) 
+  if isFmaAttsRefsOther(T:Expr) .
+ 
+  op isFmaAttsRefsOther : Expr -> Bool .
+  eq isFmaAttsRefsOther(resolveTemp(EXPR, V:ValueExpr)) = false .
+  eq isFmaAttsRefsOther( E:Expr ) = true [owise] .
+   
+
+
+
+  
+  
+  
+  eq getFmaAttsRefs( 
+    SVAR, 
+    emfGraph((node(CT,D:VarExpr,TVAR), NS), (cmt(SVAR, P, TVAR), ES)), 
+    N:Nat 
+  ) =
+    if hasBindings(TVAR, ES) then
+      snapshot( TVAR ) { 
+        
+        getFmaSnapshotAttsRefs( TVAR, emfGraph( NS , ES ) )
+      }; 
+      getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat ) 
+    else
+      getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat )
+    fi .
+
+
+  eq getFmaAttsRefs( SVAR, C:EmfGraph, N:Nat ) = () [owise] .
+  
+  
+
+
+
+  op hasBindings : VarExpr Set{EmfEdge} -> Bool .
+  eq hasBindings(VAR, (edge(VAR, P, EXPR), ES)) = true .
+  eq hasBindings(VAR, ES) = false [owise] .    
+
+***(  
+  
+  ceq getFmaAttsRefs( SVAR, emfGraph(NS, (cmt(SVAR, P, thisModule . RN:ProcName( AL:ArgList ) ), ES)), N:Nat ) =
+  	let var(X:String) = lazyRuleInvStmt(RN:ProcName,AL:ArgList) in setCmt(P, var(X:String)) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+
+  ceq getFmaAttsRefs( SVAR, emfGraph(NS, (cmt(SVAR, P, resolveTemp(EXPR, V:ValueExpr) ), ES)), N:Nat ) =
+  	let var(X:String) = resolveTemp(EXPR, V:ValueExpr) in setCmt(P, var(X:String)) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+  
+  
+  eq getFmaAttsRefs( 
+    SVAR, 
+    emfGraph(NS, (cmt(SVAR, P, (SCALAR) OCLE), ES)), 
+    N:Nat 
+  ) =
+    setCmt(P, (SCALAR) OCLE); 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat ) .   
+)
+
+
+***(  
+  These equations are redundant
+  
+  
+  ceq getFmaAttsRefs( (edge(SVAR, P, T:OclExpInv), ES), N:Nat ) =
+  	let var(X:String) = T:OclExpInv in set(P, var(X:String)) ; getFmaAttsRefs( ES, N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaAttsRefs( (edge(SVAR, P, T:ProcCallExpr), ES), N:Nat ) =
+  	let var(X:String) = T:ProcCallExpr in set(P, var(X:String)) ; getFmaAttsRefs( ES, N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+
+  
+  ceq getFmaAttsRefs( (edge(SVAR, P, T:LetExpr), ES), N:Nat ) =
+  	let var(X:String) = T:LetExpr in set(P, var(X:String)) ; getFmaAttsRefs( ES, N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+  
+
+
+  
+  ceq getFmaAttsRefs( (edge(SVAR, P, thisModule . RN:ProcName(EXPR) ), ES), N:Nat ) =
+  	let var(X:String) = lazyRuleInvStmt(RN:ProcName,EXPR) in set(P, var(X:String)) ; getFmaAttsRefs( ES, N:Nat +N 1 ) 
+  if 
+  	X:String := string(N:Nat,10) . 
+
+)
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op getTLinkStmt : ProcName VarExpr VarExpr EmfGraph -> Stmt .
+  eq getTLinkStmt( P:ProcName, MN:VarExpr, VAR, G:EmfGraph ) =
+    getTLinkStmt( P:ProcName, MN:VarExpr, VAR, G:EmfGraph, 0 ) .
+
+  op getTLinkStmt : ProcName VarExpr VarExpr EmfGraph Nat -> Stmt .
+  ceq getTLinkStmt( 
+  	proc(PN:String),
+  	MN:VarExpr, 
+  	VAR, 
+  	emfGraph(
+  		(node(CT, MN:VarExpr, var(VS:String)), NS), 
+  		ES
+  	),
+    N:Nat
+  ) = 
+  	let var("TL" + X:String) = create((metamodel("AtlTrace") ! cid("TLink"))) in 
+  		snapshot var("TL" + X:String) { 
+  			set(prop("rule"), val(PN:String)) ; 
+  			set(prop("source"), VAR ) ; 
+  			set(prop("target"), var(VS:String)) ; 	 
+  			set(prop("targetVar"), val(VS:String))   
+  		} ;
+  	getTLinkStmt( 
+  		proc(PN:String),
+  		MN:VarExpr, 
+  		VAR, 
+  		emfGraph(NS,ES),
+      N:Nat +N 1
+    ) 
+  if X:String := string(N:Nat,10) .
+  eq getTLinkStmt( PN:ProcName, MN:VarExpr, VAR, G:EmfGraph, N:Nat ) = () [owise] .
+  	
+
+
+***( 
+  
+  
+  op getTLinkStmt : ProcName VarExpr EmfGraph -> Stmt .
+  eq getTLinkStmt( op(PN:String), VAR, emfGraph(NS, ES)) = 
+  	let var("TL") = create((metamodel("AtlTrace") ! cid("TLink"))) in 
+  		snapshot var("TL") { 
+  			set( prop("rule"), val(PN:String)) ; 
+  			set( prop("source"), VAR ) ; 
+  			compileTLinkTarget(NS) 
+  		} .
+  	
+  op compileTLinkTarget : Set{EmfNode} -> Stmt .
+  eq compileTLinkTarget( empty ) = () .
+  eq compileTLinkTarget( (node(CT, MN:VarExpr, var(VS:String)), NS) ) =
+  	set(prop("target"),var(VS:String)) ; 		
+  	
+  	compileTLinkTarget( NS ) .
+)
+
+  
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op getTraceStmt : ProcName VarExpr VarExpr EmfGraph -> TraceStmt .
+  
+  ceq getTraceStmt( P:ProcName, MN:VarExpr, VAR, G:EmfGraph ) =
+    TrS:TraceStmt
+  if TrS:TraceStmt ; tUnit := getTraceStmtInsert( P:ProcName, MN:VarExpr, VAR, G:EmfGraph ) .
+  eq getTraceStmt( P:ProcName, MN:VarExpr, VAR, G:EmfGraph ) =
+    getTraceStmtInsert( P:ProcName, MN:VarExpr, VAR, G:EmfGraph ) [owise] .
+
+  op getTraceStmtInsert : ProcName VarExpr VarExpr EmfGraph -> TraceStmt .
+  eq getTraceStmtInsert( 
+    proc(PN:String),
+    MN:VarExpr, 
+    VAR, 
+    emfGraph(
+      (node(CT, MN:VarExpr, var(VS:String)), NS), 
+      ES
+    )
+  ) = 
+    
+    insertTraceLink(
+        VAR,            
+        val(PN:String),
+        val(VS:String), 
+        var(VS:String)  
+    ) ;
+    getTraceStmtInsert( 
+      proc(PN:String),
+      MN:VarExpr, 
+      VAR, 
+      emfGraph(NS,ES)
+    )
+  .
+  eq getTraceStmtInsert( 
+    proc(PN:String),
+    MN:VarExpr, 
+    VAR, 
+    emfGraph(
+      (nodeDrop(MN:VarExpr, var(VS:String)), NS), 
+      ES
+    )
+  ) = 
+    
+    insertTraceLink(
+        VAR,            
+        val(PN:String),
+        val("DROPPED"), 
+        VAR             
+    ) ;
+    getTraceStmtInsert( 
+      proc(PN:String),
+      MN:VarExpr, 
+      VAR, 
+      emfGraph(NS,ES)
+    )
+  .  
+  eq getTraceStmtInsert( 
+    proc(PN:String),
+    MN:VarExpr, 
+    VAR, 
+    emfGraph(
+      (nodeDrop(MN:VarExpr, V:ValueExpr, P:PropName, var(VS:String)), NS), 
+      ES
+    )
+  ) = 
+    
+    insertTraceLink(
+        VAR,            
+        val(PN:String),
+        val("DROPPED"), 
+        VAR             
+    ) ;
+    getTraceStmtInsert( 
+      proc(PN:String),
+      MN:VarExpr, 
+      VAR, 
+      emfGraph(NS,ES)
+    )
+  .  
+  eq getTraceStmtInsert( PN:ProcName, MN:VarExpr, VAR, G:EmfGraph ) = tUnit [owise] .
+    
+
+  
+endm
+

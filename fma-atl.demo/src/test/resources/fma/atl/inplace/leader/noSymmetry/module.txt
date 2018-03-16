@@ -1,0 +1,335 @@
+
+mod FMA-ATL-MODELS is
+  inc FMA-ATL-SEMANTICS .
+
+  eq runtimeOptions = { prop("surfaceDsl") = val("FmaAtl"), prop("mode") = val("in-place") } .
+
+  eq cl(metamodel("Network") ! cid("Root")) = 
+noField .
+eq cl(metamodel("Network") ! cid("Network")) = 
+	(prop("processes") :t (metamodel("Network") ! cid("Process"))[0 .. -1] { ordered } bi(prop("owner")) )
+	(prop("messages") :t (metamodel("Network") ! cid("Message"))[0 .. -1] { ordered } bi(prop("owner")) )
+ .
+eq default(metamodel("Network") ! cid("Network")) = (prop("processes") = val(0 |-> sentinel)),(prop("messages") = val(0 |-> sentinel)) .
+eq cl(metamodel("Network") ! cid("Process")) = 
+	(prop("pID") :t DSL#String)
+	(prop("active") :t DSL#String)
+	(prop("leader") :t DSL#String)
+	(prop("owner") :t ref( metamodel("Network") ! cid("Network"))[1 .. 1] { ordered } bi(prop("processes")) )
+	(prop("next") :t ref( metamodel("Network") ! cid("Process"))[1 .. 1] { ordered } uni)
+ .
+eq default(metamodel("Network") ! cid("Process")) = (prop("pID") = val("")),(prop("active") = val("")),(prop("leader") = val("")),(prop("owner") = ref(0 |-> sentinel)),(prop("next") = ref(0 |-> sentinel)) .
+eq cl(metamodel("Network") ! cid("Message")) = 
+	(prop("mID") :t DSL#String)
+	(prop("owner") :t ref( metamodel("Network") ! cid("Network"))[1 .. 1] { ordered } bi(prop("messages")) )
+	(prop("at") :t ref( metamodel("Network") ! cid("Process"))[1 .. 1] { ordered } uni)
+ .
+eq default(metamodel("Network") ! cid("Message")) = (prop("mID") = val("")),(prop("owner") = ref(0 |-> sentinel)),(prop("at") = ref(0 |-> sentinel)) .
+eq r(metamodel("Network")) = metamodel("Network") ! cid("Root") .
+eq sr(metamodel("Network")) = subtype(metamodel("Network") ! cid("Network"), metamodel("Network") ! cid("Root")) subtype(metamodel("Network") ! cid("Message"), metamodel("Network") ! cid("Root")) .
+
+
+  op inModel : -> IObjectSet [ctor] .
+  eq inModel = (
+  	(0 |-> { prop("_id") = val(oid(metamodel("Network") ! cid("Network"), 0)) 
+,
+ prop("processes") = val(((0 |-> { prop("_id") = val(oid(metamodel("Network") ! cid("Process"), 0)) 
+,
+ prop("pID") = val("0"),
+ prop("active") = val("false"),
+ prop("leader") = val("false"),
+ prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) (1 |-> sentinel)),
+ prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 3)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("Network") ! cid("Process"), 1)) 
+,
+ prop("pID") = val("2"),
+ prop("active") = val("false"),
+ prop("leader") = val("false"),
+ prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) (1 |-> sentinel)),
+ prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 0)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("Network") ! cid("Process"), 2)) 
+,
+ prop("pID") = val("1"),
+ prop("active") = val("false"),
+ prop("leader") = val("false"),
+ prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) (1 |-> sentinel)),
+ prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 1)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("Network") ! cid("Process"), 3)) 
+,
+ prop("pID") = val("3"),
+ prop("active") = val("false"),
+ prop("leader") = val("false"),
+ prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) (1 |-> sentinel)),
+ prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 2)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("messages") = val((0 |-> sentinel))}
+)(1 |-> sentinel)
+  ) .
+
+  op inLoc : -> Map{QualifiedCid,OuterMap} .
+
+  op inNew : -> Map{QualifiedCid,Oid} .
+  eq inNew = (
+	(metamodel("Network") ! cid("Network") |-> oid(metamodel("Network") ! cid("Network"),1)), (metamodel("Network") ! cid("Process") |-> oid(metamodel("Network") ! cid("Process"),4)), (metamodel("Network") ! cid("Message") |-> oid(metamodel("Network") ! cid("Message"),0))
+  ) .
+
+  op outLoc : -> Map{QualifiedCid,OuterMap} .
+  eq outLoc = empty .
+
+  op outNew : -> Map{QualifiedCid,Oid} .
+  eq outNew = (
+	(metamodel("Network") ! cid("Network") |-> oid(metamodel("Network") ! cid("Network"), 0)),(metamodel("Network") ! cid("Process") |-> oid(metamodel("Network") ! cid("Process"), 0)),(metamodel("Network") ! cid("Message") |-> oid(metamodel("Network") ! cid("Message"), 0))
+  ) .
+
+
+  op trafo : -> AtlTrafoStmt .
+  eq trafo = (
+	module "leader" ;
+create var("OUT") : metamodel("Network")  in-place  (var("IN") : metamodel("Network"))
+rule proc("cMsg") {
+	from var("p") : (metamodel("Network") ! cid("Process")) in var("IN")((
+						(DSL#Bool) ((oclVar("p") . prop("active") = "false"))
+					) ) 
+	using {
+		var("n") : (metamodel("Network") ! cid("Network")) = ((metamodel("Network") ! cid("Network"))) oclVar("p") . prop("owner") -> asSequence ( ) -> first ( ) ;
+	}
+	to 
+		((var("p")  :  (metamodel("Network") ! cid("Process")) in var("OUT")
+		(	(prop("active") <- (
+					(DSL#String) "true")
+				)
+		)),
+		(var("n")  :  (metamodel("Network") ! cid("Network")) in var("OUT")
+		(	(prop("messages") <- (
+					(metamodel("Network") ! cid("Message")) oclVar("m"))
+				)
+		)),
+		(var("m")  :  (metamodel("Network") ! cid("Message")) in var("OUT")
+		(	(prop("mID") <- (
+					(DSL#String) oclVar("p") . prop("pID"))
+				),
+			(prop("at") <- (
+					(metamodel("Network") ! cid("Process")) oclVar("p") . prop("next") -> asSequence ( ) -> first ( ))
+				)
+		))
+		)
+}
+rule proc("zzzzdMsg") {
+	from var("m") : (metamodel("Network") ! cid("Message")) in var("IN")((
+						(DSL#Bool) ((((oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("active") = "true") and (oclVar("m") . prop("mID") > oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("pID"))) or (oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("leader") = "true")))
+					) ) 
+	to 
+		drop(
+			var("OUT"),
+			(metamodel("Network") ! cid("Network")) oclVar("m") . prop("owner") -> asSequence() -> first(),
+			prop("messages"),
+			var("m")
+		)
+}
+rule proc("prop") {
+	from var("m") : (metamodel("Network") ! cid("Message")) in var("IN")((
+						(DSL#Bool) (((oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("active") = "true") and (oclVar("m") . prop("mID") < oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("pID"))))
+					) ) 
+	to 
+		((var("m")  :  (metamodel("Network") ! cid("Message")) in var("OUT")
+		(	(prop("at") <- (
+					(metamodel("Network") ! cid("Process")) oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) . prop("next") -> asSequence ( ) -> first ( ))
+				)
+		))
+		)
+}
+rule proc("select") {
+	from var("p") : (metamodel("Network") ! cid("Process")) in var("IN")((
+						(DSL#Bool) ((((oclVar("p") . prop("active") = "true") and (oclVar("p") . prop("leader") = "false")) and oclVar("p") . prop("owner") -> asSequence ( ) -> first ( ) . prop("messages") -> exists (
+										oclVar("m") | ((oclVar("m") . prop("at") -> asSequence ( ) -> first ( ) = oclVar("p")) and (oclVar("m") . prop("mID") = oclVar("p") . prop("pID"))) 
+									)))
+					) ) 
+	to 
+		((var("p")  :  (metamodel("Network") ! cid("Process")) in var("OUT")
+		(	(prop("leader") <- (
+					(DSL#String) "true")
+				)
+		))
+		)
+}
+empty
+
+  ) .
+endm
+
+mod FMA-VERIFICATION is
+
+  including FMA-SPEC .
+  including MODEL-CHECKER * (op _|_   : Nat Nat -> Nat  to _|N_,    
+                op _xor_ : Nat Nat -> Nat to _nxor_,   
+                op _<_   : Nat Nat -> Bool to _<N_,    
+                op _<=_  : Nat Nat -> Bool to _<=N_,   
+                op _>_   : Nat Nat -> Bool to _>N_,    
+                op _>=_  : Nat Nat -> Bool to _>=N_,   
+                op _*_   : Nat Nat -> Nat to _*N_,     
+                op _+_   : Nat Nat -> Nat to _+N_,
+ 
+                op _<_  : String String -> Bool to _lt_,   
+                op _<=_ : String String -> Bool to _leq_,   
+                op _>_  : String String -> Bool to _gt_,   
+                op _>=_ : String String -> Bool to _geq_,  
+                op _+_  : String String -> String to _++_) .  
+  including LTL-SIMPLIFIER * (op _|_   : Nat Nat -> Nat  to _|N_,    
+                op _xor_ : Nat Nat -> Nat to _nxor_,   
+                op _<_   : Nat Nat -> Bool to _<N_,    
+                op _<=_  : Nat Nat -> Bool to _<=N_,   
+                op _>_   : Nat Nat -> Bool to _>N_,    
+                op _>=_  : Nat Nat -> Bool to _>=N_,   
+                op _*_   : Nat Nat -> Nat to _*N_,     
+                op _+_   : Nat Nat -> Nat to _+N_ ) .  
+
+  op initialState : -> AtlKWrapper .
+  eq initialState = atlMatchingK( procEnv(empty)
+|
+ruleStore(atlRule(proc("cMsg"), metamodel("Network") ! cid("Process"), var(
+    "p"), var("IN"), (DSL#Bool)oclVar("p") . prop("active") = "false",
+    domainStmt(var("OUT"), let var("n") = (metamodel("Network") ! cid(
+    "Network"))oclVar("p") . prop("owner") -> asSequence() -> first() in (let
+    var("m") = create(metamodel("Network") ! cid("Message")) in () ; snapshot
+    var("n"){setCmt(prop("messages"), (metamodel("Network") ! cid(
+    "Message"))oclVar("m"))} ; snapshot var("p"){set(prop("active"), (
+    DSL#String)"true")} ; snapshot var("n"){()} ; snapshot var("m"){set(prop(
+    "at"), (metamodel("Network") ! cid("Process"))oclVar("p") . prop("next") ->
+    asSequence() -> first()) ; set(prop("mID"), (DSL#String)oclVar("p") . prop(
+    "pID"))}), (), tUnit)) atlRule(proc("prop"), metamodel("Network") ! cid(
+    "Message"), var("m"), var("IN"), (DSL#Bool)(oclVar("m") . prop("at") ->
+    asSequence() -> first() . prop("active") = "true" and oclVar("m") . prop(
+    "mID") < oclVar("m") . prop("at") -> asSequence() -> first() . prop(
+    "pID")), domainStmt(var("OUT"), snapshot var("m"){set(prop("at"), (
+    metamodel("Network") ! cid("Process"))oclVar("m") . prop("at") ->
+    asSequence() -> first() . prop("next") -> asSequence() -> first())}, (),
+    tUnit)) atlRule(proc("select"), metamodel("Network") ! cid("Process"), var(
+    "p"), var("IN"), (DSL#Bool)(oclVar("p") . prop("active") = "true" and
+    oclVar("p") . prop("leader") = "false" and oclVar("p") . prop("owner") ->
+    asSequence() -> first() . prop("messages") -> exists(oclVar("m") | oclVar(
+    "m") . prop("mID") = oclVar("p") . prop("pID") and oclVar("m") . prop("at")
+    -> asSequence() -> first() = oclVar("p"))), domainStmt(var("OUT"), snapshot
+    var("p"){set(prop("leader"), (DSL#String)"true")}, (), tUnit)) atlRule(
+    proc("zzzzdMsg"), metamodel("Network") ! cid("Message"), var("m"), var(
+    "IN"), (DSL#Bool)(oclVar("m") . prop("at") -> asSequence() -> first() .
+    prop("active") = "true" and oclVar("m") . prop("mID") > oclVar("m") . prop(
+    "at") -> asSequence() -> first() . prop("pID") or oclVar("m") . prop("at")
+    -> asSequence() -> first() . prop("leader") = "true"), domainStmt(var(
+    "OUT"), let var("OWNER") = (metamodel("Network") ! cid("Network"))oclVar(
+    "m") . prop("owner") -> asSequence() -> first() in snapshot var("OWNER"){
+    unset(prop("messages"), var("m"))}, (), tUnit)))
+|
+mode(in-place)
+|
+resolveTempClasses(metamodel("") ! cid(""))
+|
+match(noMatch)
+|
+matchPool((nil).List{WeightedMatch<=})
+|
+trace(empty, empty, empty)
+|
+queryDomain(var("IN"), (0 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Network"), 0)),
+prop("messages") = val(0 |-> (sentinel).Object),
+prop("processes") = val((0 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 0)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 3)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("0")}) (1 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 1)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 0)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("2")}) (2 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 2)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 1)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("1")}) (3 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 3)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 2)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("3")}) 4 |-> (sentinel).Object)}) 1 |-> sentinel, ((
+    metamodel("Network") ! cid("Message")) |-> oid(metamodel("Network") ! cid(
+    "Message"), 0), (metamodel("Network") ! cid("Network")) |-> oid(metamodel(
+    "Network") ! cid("Network"), 1), (metamodel("Network") ! cid("Process"))
+    |-> oid(metamodel("Network") ! cid("Process"), 4)), ((metamodel("Network")
+    ! cid("Network")) |-> 0 |-> 0 |-> loc(oid(metamodel("Network") ! cid(
+    "Network"), 0)), (metamodel("Network") ! cid("Process")) |-> 0 |-> (0 |-> (
+    loc(oid(metamodel("Network") ! cid("Network"), 0)) . loc(prop("processes"))
+    . loc(oid(metamodel("Network") ! cid("Process"), 0))), 1 |-> (loc(oid(
+    metamodel("Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(
+    oid(metamodel("Network") ! cid("Process"), 1))), 2 |-> (loc(oid(metamodel(
+    "Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(oid(
+    metamodel("Network") ! cid("Process"), 2))), 3 |-> (loc(oid(metamodel(
+    "Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(oid(
+    metamodel("Network") ! cid("Process"), 3))))), 0 |-> sentinel, empty)
+|
+domain(var("OUT"), (0 |-> {prop("_id") = val(oid(metamodel("Network") ! cid(
+    "Network"), 0)),
+prop("messages") = val(0 |-> (sentinel).Object),
+prop("processes") = val((0 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 0)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 3)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("0")}) (1 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 1)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 0)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("2")}) (2 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 2)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 1)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("1")}) (3 |-> {prop("_id") = val(oid(metamodel("Network") !
+    cid("Process"), 3)),
+prop("active") = val("false"),
+prop("leader") = val("false"),
+prop("next") = ref((0 |-> oid(metamodel("Network") ! cid("Process"), 2)) 1 |->
+    (sentinel).Oid),
+prop("owner") = ref((0 |-> oid(metamodel("Network") ! cid("Network"), 0)) 1 |->
+    (sentinel).Oid),
+prop("pID") = val("3")}) 4 |-> (sentinel).Object)}) 1 |-> sentinel, ((
+    metamodel("Network") ! cid("Message")) |-> oid(metamodel("Network") ! cid(
+    "Message"), 0), (metamodel("Network") ! cid("Network")) |-> oid(metamodel(
+    "Network") ! cid("Network"), 1), (metamodel("Network") ! cid("Process"))
+    |-> oid(metamodel("Network") ! cid("Process"), 4)), ((metamodel("Network")
+    ! cid("Network")) |-> 0 |-> 0 |-> loc(oid(metamodel("Network") ! cid(
+    "Network"), 0)), (metamodel("Network") ! cid("Process")) |-> 0 |-> (0 |-> (
+    loc(oid(metamodel("Network") ! cid("Network"), 0)) . loc(prop("processes"))
+    . loc(oid(metamodel("Network") ! cid("Process"), 0))), 1 |-> (loc(oid(
+    metamodel("Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(
+    oid(metamodel("Network") ! cid("Process"), 1))), 2 |-> (loc(oid(metamodel(
+    "Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(oid(
+    metamodel("Network") ! cid("Process"), 2))), 3 |-> (loc(oid(metamodel(
+    "Network") ! cid("Network"), 0)) . loc(prop("processes")) . loc(oid(
+    metamodel("Network") ! cid("Process"), 3))))), 0 |-> sentinel, empty)) .
+
+endm
+red modelCheck(initialState, ~ <> [] mLeader) . 

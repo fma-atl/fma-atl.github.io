@@ -1,0 +1,161 @@
+mod FMA-SEMANTICS-DESTRUCTIVE is 
+  inc FMA-SEMANTICS-CONSTRUCTIVE .
+
+
+
+  vars E E' E'' E1 E2 : Env .
+  vars MVar2Val MVar2Val' : Map{VarExpr,ValueExpr} .
+  var MCid2Oid MCid2OidNewObject : Map{QualifiedCid,Oid} . 
+  var O O1 O2 O3 O4 O5 O6 O7 O8 O9 O10 : Oid . 
+  var iO : IOid .
+  var OIDSET : OidSet . 
+  vars Obj Obj1 Obj2 Obj' Obj'' Obj''' : Object .
+  vars PS1 PS1' PS2 PS2' PS PS' PS'' : PropSet .
+  var P P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 : PropName .
+  var OS OS1 OS2 OS3 iOS iOS' iOS1 iOS2 iOS3 iOS4 OSCTX : IObjectSet .
+  var iObj iObj2 : IObject .
+  var IS : IOidSet .
+  var C : QualifiedCid .
+  vars L L' L'' L1 L2 : Location .
+  var EP : EnvP .
+  vars X X' : VarExpr .
+  vars V V' V1 V2 : ValueExpr .
+  var I I' I1 I2 I3 OID : Int .
+  var String ERRORTYPE DESC : String .
+  var B : Bool .
+  var BT : BaseTypeName .
+  var ProcName : ProcName .
+  var ParamList : ParamList .
+  var EXPR EXPR1 EXPR2 : Expr .
+  var ProcType : ProcType .
+  vars ArgList ArgList1 ArgList2 : ArgList .
+  var Arg : Argument .
+  var K K1 K2 K' K'' : K .
+  var OSP : ObjSetPair .
+  var BRS : Map{BiRefEnd,BiRefEnd} .
+  var ERROR : StmtError .
+  
+  
+  var S S' S1 S1' S2 : Stmt .
+  var SV : StmtValue .
+  
+  var VARM : Map{VarExpr,ValueExpr} .
+  vars OIDM LOCM LOCM' LOCM2 MOid2Loc MOid2Loc1 MOid2Loc2 MOid2Loc3 MOid2Loc4 MOid2Loc' MOid2LocNewObject : Map{QualifiedCid,OuterMap} .
+  var NEWM : Map{QualifiedCid,Oid} .
+  var MTN : ModelTypeName .
+  var SC : Cid .
+  vars SAIS SAIS1 SAIS2 SAIS3 SAIS' SAIS'' : IActionSet .
+
+  
+  crl [E-DeleteRoot] :
+    fmaK(K | env(E) | model((I |-> { prop("_id") = val(O), PS }) iOS1) | stmt(delete(X)))  
+  => 
+    fmaK(K | env(E') | model(iOS1) | stmt( () )) 
+  if
+    val(O) := E [ X ]
+  /\
+    isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == true 
+  /\
+    
+    
+    
+    E' := delete(oids((I |-> { prop("_id") = val(O), PS })), E) .
+     
+
+
+
+  
+  
+
+
+  rl [E-AttUnset] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = V, PS) | stmt(unset(P)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = default(V), PS) | stmt( () )) .
+        
+
+  
+  
+  
+  
+  
+  
+
+  crl [E-RefUniUnset] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | stmt(unset(P, X)))  
+  => 
+    
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | stmt( () )) 
+  if 
+    val(O) := E [ X ] 
+  /\
+    isDef(E [[ O ]])  
+  /\
+    oid(MTN ! SC, OID) := deepestOid(L)
+  /\
+    lower(MTN ! SC, P) < (| IS | +N 1) 
+  /\ 
+    
+    
+    hasOppositeRef(MTN ! SC, P) =/= true 
+  .
+  
+  crl [E-RefBiUnset] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | pendingActions((SAIS, (I2 |-> sentinel))) | stmt(unset(P, X)))  
+  => 
+    
+    
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | pendingActions(((I2 |-> unset(O,P2,oid(MTN ! SC, OID))), SAIS, ((I2 +N 1) |-> sentinel))) | stmt( () )) 
+  if 
+    val(O) := E [ X ] 
+  /\ 
+    oid(MTN ! SC, OID) := deepestOid(L)
+  /\
+    lower(MTN ! SC, P) < (| IS | +N 1) 
+  /\ 
+    
+    P2 := op(MTN ! SC, P) .
+
+
+	
+  
+  
+  
+  
+
+
+  
+  
+
+  op isolated : IObjectSet IObjectSet -> Bool .
+  
+  
+  
+  eq isolated( iOS, iOS' ) = intersection(oids(iOS), refs(iOS')) == emptyOidSet .
+
+  
+  
+  crl [E-CmtUnset] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(((I |-> { prop("_id") = val(O), PS }) iOS)), PS') | stmt(unset(P, X)))  
+  => 
+    fmaK(K | env(E') | model(iOS1) | focus(L) | ps(P = val(iOS), PS') | stmt( () ))
+  if 
+    val(O) := E [ X ] 
+  /\
+    isDef(E [[ O ]])
+  /\
+    lower(getCid(deepestOid(L)), P) < (| iOS | +N 1)
+  /\
+    isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == true
+  /\
+    E' := delete(oids(I |-> { prop("_id") = val(O), PS }), E) .
+
+endm
+
+
+
+
+
+
+
+

@@ -1,0 +1,144 @@
+mod FMA-SEMANTICS-UNTYPED is 
+  inc FMA-SEMANTICS-ERRORS .
+  
+
+  var I : Int .
+  var IS : IOidSet .
+  var N : Nat .
+  var PS : PropSet .
+  var P : PropName .
+  vars E E' : Env .
+  var K : K .
+  var L L' : Location .
+  var OS OS1 OS2 : IObjectSet .
+  var O O2 : Oid .
+  var V V' : ValueExpr .
+  var EXPR : Expr .
+  var Obj : Object .
+
+
+  
+  
+  
+  
+  
+
+  
+  
+
+  
+  
+  crl [E-ActCreateUntyped] :
+    fmaK(K | env(E) | model(OS1) | focus(L) | ps(P = val((N |-> sentinel) OS2), PS ) | stmt(create(P, (metamodel("") ! cid("")))))
+  => 
+    fmaK(K | env(E') | model(OS1) | focus(L) | ps(P = val((N |-> { prop("_id") = val(O) }) ((N +N 1) |-> sentinel) OS2), PS) | stmt( () )) 
+  if 
+    O := E [ (metamodel("") ! cid("")) ] 
+  /\ 
+    E' := insert(O, L . loc(P) . loc(O), insert((metamodel("") ! cid("")), fresh(O), E)) .
+  	 
+
+  
+  crl [E-CreateUntypedUnset] :
+    fmaK(K | env(E) | model(OS1) | focus(L) | ps(PS) | stmt(create(P, (metamodel("") ! cid(""))))) 
+  => 
+    fmaK(K | env(E') | model(OS1) | focus(L) | ps(P = val((0 |-> { prop("_id") = val(O) }) 1 |-> sentinel), PS) | stmt( () )) 
+  if 
+    P in PS = false
+  /\
+    O := E [ (metamodel("") ! cid("")) ] 
+  /\ 
+    E' := insert(O, L . loc(P) . loc(O), insert((metamodel("") ! cid("")), fresh(O), E)) .
+
+
+
+  
+  
+
+  
+  crl [E-AttUndefSetU] :
+    fmaK(K | env(E) | model(OS) | extExprK(EK:K) | focus(L) | ps(PS) | stmt(set(P, V)))  
+  => 
+    fmaK(K | env(E) | model(OS) | extExprK(EK:K) | focus(L) | ps(P = V, PS) | stmt( () )) 
+  if
+    O := deepestOid(L)
+  /\
+    getCid(O) == (metamodel("") ! cid("")) 
+  /\ 
+    isBaseTypeValue(V) == true
+  /\ 
+    P in PS = false
+  .
+
+
+  
+  
+  
+  
+  crl [E-RefUndefSet] :
+    fmaK(K | env(E) | model(OS) | focus(L) | ps(PS) | stmt(set(P, val(O))))  
+  => 
+    fmaK(K | env(E) | model(OS) | focus(L) | ps(P = ref((0 |-> O) 1 |-> sentinel), PS) | stmt( () )) 
+  if 
+    O2 := deepestOid(L)
+  /\
+    getCid(O2) == (metamodel("") ! cid("")) 
+  /\  
+    P in PS = false
+  /\
+    isDef(E [[ O ]]) .
+  
+
+
+  
+  
+
+  
+  crl [E-SetCmtU] :
+    fmaK(K | env(E) | model(OS1) | focus(L) | ps(PS) | stmt(setCmt(P, val(O))))  
+  => 
+    
+    fmaK(K | env(insert(O, (L . loc(P) . loc(O)), E)) | model(OS2) | focus(L) | ps(P = val((0 |-> Obj) 1 |-> sentinel), PS) | stmt( () )) 
+  if
+    P in PS = false 
+  /\ 
+    getCid(O) == (metamodel("") ! cid(""))
+  /\
+    isDef(E [[ O ]])
+  /\
+    L' := E [[ O ]] 
+  /\
+  < OS2 ; (I |-> Obj) > := unplug(OS1, L') .
+
+
+
+
+
+  
+  
+  
+  
+  
+
+  
+  
+
+  crl [E-CreateRootUntyped] :
+    fmaK(K | env(E) | model(OS1 (N |-> sentinel)) | stmt(create((metamodel("") ! cid("")))))  
+  => 
+    fmaK(K | env(E') | model((N |-> { prop("_id") = val(O) }) ((N +N 1) |-> sentinel) OS1) | stmt( () )) 
+  if
+    O := E [ (metamodel("") ! cid("")) ] 
+  /\ 
+    E' := insert(O, loc(O), insert((metamodel("") ! cid("")), fresh(O), E)) . 
+    
+    
+endm
+
+
+
+
+
+
+
+

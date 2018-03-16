@@ -1,0 +1,27 @@
+mod FMA-OCL-SEMANTICS-ERROR is
+  extending FMA-OCL-SEMANTICS-SOS .
+
+***( commented until type inference is fixed 23-06-2017      
+  
+  crl [E-OclExpInvError] :
+    exprK(
+    	EK:K 
+    	| exprEnv(var(VAR:Map{VarExpr,ValueExpr}) E1:Env) 
+    	| exprModel(V:VarExpr, OS1:IObjectSet, QNEW:Map{QualifiedCid,Oid}, QLOC:Map{QualifiedCid,OuterMap}) 
+    	| expr( (T:Scalar) OCLE:OclExp )
+    )
+  => 
+    exprK(output(error("OCL validity error", "The value returned by the OCL expression is not valid.", (T:Scalar) OCLE:OclExp)))
+  if
+    
+    
+    RES:OclType := eval(OCLE:OclExp, getModclConfiguration(OS1:IObjectSet, var(VAR:Map{VarExpr,ValueExpr}) loc(QLOC:Map{QualifiedCid,OuterMap})))
+  /\
+    not(isSafeValue(RES:OclType, T:Scalar)) .
+) 
+      	
+
+  	  
+endm
+
+

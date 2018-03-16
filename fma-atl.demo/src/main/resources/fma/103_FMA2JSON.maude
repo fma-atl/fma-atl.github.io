@@ -1,0 +1,152 @@
+
+
+
+mod FMA-MODEL-SIMPLIFICATION is
+  inc MODEL_PLANTUML .
+  
+  var I : Int .
+  var N : Nat .
+  var IS : IOidSet .
+  var OS : IObjectSet .
+  var O : Oid .
+  var PS : PropSet .
+  var P : PropName .
+  var C : QualifiedCid .
+  
+  op zeroOids : IObjectSet -> IObjectSet .
+  eq zeroOids( (I |-> { PS }) OS ) = 
+  	(I |-> { zeroOids( PS ) }) zeroOids( OS ) . 
+  eq zeroOids( OS ) = OS [owise] . 
+  
+  op zeroOids : PropSet -> PropSet .
+  eq zeroOids( (P = val(O), PS) ) = (P = val(zeroOid(O)), zeroOids(PS)) . 
+  eq zeroOids( (P = ref(IS), PS) ) = (P = ref(zeroOids(IS)), zeroOids(PS)) . 
+  eq zeroOids( (P = val(OS), PS) ) = (P = val(zeroOids(OS)), zeroOids(PS)) . 
+  eq zeroOids( PS ) = PS [owise] . 
+  
+  op zeroOids : IOidSet -> IOidSet .
+  eq zeroOids( (I |-> O) IS ) = (I |-> zeroOid(O)) zeroOids(IS) .
+  eq zeroOids( IS ) = IS [owise] . 
+  
+  op zeroOid : Oid -> Oid .
+  eq zeroOid( oid(C,N) ) = oid(C,0) .
+  eq zeroOid( sentinel ) = sentinel . 
+  
+endm
+
+
+
+mod FMA2JSON is
+  inc JSON .
+  
+  
+  
+  inc FMA-MODEL-SIMPLIFICATION .
+  
+  var S : String .
+  var C : Cid .
+  var P : PropName .
+  var I : Int .
+  var F : Float .
+  var B : Bool .
+  var V : ValueExpr .
+  var O : Oid .
+  var iO : IOid .
+  var iOS : IOidSet .
+  var Obj : Object .
+  var iObj : IObject .
+  var iObjS : IObjectSet .
+  var PS : PropSet .
+  var Prop : Property .
+  
+  var jO : JsonOid .
+  var jOL : JsonArrayEltList{JsonOid} .
+  
+
+
+  
+  op fma2Json : Object -> JsonDoc .
+  eq fma2Json({ PS }) = { fma2Json(PS) } .
+    
+    
+  
+  op fma2Json : PropSet -> JsonDocPropSet .
+  eq [fma2Json-PropSet-1] : fma2Json(noProp) = none .
+  eq [fma2Json-PropSet-2] : fma2Json( (Prop, PS) ) = fma2JsonProp(Prop), fma2Json(PS)  .
+  
+  
+  
+  op fma2JsonProp : Property -> JsonDocProp .
+  
+  eq fma2JsonProp(prop("_id") = val(O)) = "_id" :oid fma2Json(O) .
+  
+  eq fma2JsonProp(prop("_type") = val(S)) = "_type" : S .
+  
+  eq fma2JsonProp(P = val(I)) = getPropName(P) : I .
+  eq fma2JsonProp(P = val(F)) = getPropName(P) : F .
+  eq fma2JsonProp(P = val(S)) = getPropName(P) : S .
+  eq fma2JsonProp(P = val(B)) = getPropName(P) : B .
+  eq fma2JsonProp(P = val(literal(S))) = getPropName(P) : S .
+  
+  
+  eq fma2JsonProp(P = ref(N:Nat |-> sentinel)) = getPropName(P) :oid oidArray0 .
+  eq fma2JsonProp(P = ref(iOS)) =  getPropName(P) :oid [ fma2Json(iOS) ] .
+  
+  
+  eq fma2JsonProp(P = val(N:Nat |-> sentinel)) =  getPropName(P) : docArray0 .
+  eq fma2JsonProp(P = val(iObjS)) = getPropName(P) : [ fma2Json(iObjS) ] .
+
+  
+  op fma2Json : IOidSet -> JsonArrayEltList{JsonOid} .
+  eq fma2Json( iOS ) = $fma2Json( iOS, 0 ) . 
+  
+  op $fma2Json : IOidSet Int -> JsonArrayEltList{JsonOid} .
+  eq [$fma2Json-oidSet-1] :  $fma2Json( (I |-> oid(Q:QualifiedCid,OID:Int)) iOS, I ) = 
+    fma2Json(oid(Q:QualifiedCid,OID:Int)), $fma2Json(iOS, I + 1) .
+  eq [$fma2Json-oidSet-2] : $fma2Json( (N:Nat |-> (sentinel).Oid), I ) = noDoc .
+  
+  ceq [$fma2Json-oidSet-3] : $fma2Json( iOS, I ) = $fma2Json( iOS, I + 1 ) if I < 1000 [owise] .  
+
+
+  
+  op fma2Json : IObjectSet -> JsonArrayEltList{JsonDoc} .
+  eq fma2Json( iObjS ) = $fma2Json( iObjS, 0 ) .
+  
+  op $fma2Json : IObjectSet Int -> JsonArrayEltList{JsonDoc} .
+  eq [$fma2Json-objectSet-1] : $fma2Json( (I |-> {PS}) iObjS, I ) = 
+    fma2Json({PS}), $fma2Json(iObjS, I + 1) .
+  eq [$fma2Json-objectSet-2] : $fma2Json( (N:Nat |-> (sentinel).Object), I ) = noDoc .
+  
+  ceq [$fma2Json-objectSet-3] : $fma2Json( iObjS, I ) = $fma2Json( iObjS, I + 1 ) if I < 1000 [owise] . 
+
+
+
+
+
+  
+  op fma2Json : Oid -> JsonOid .
+  eq fma2Json({ "$oid" = val(S) }) = { "$oid" : S } .
+  
+  eq fma2Json(oid(metamodel(M:String) ! cid(T:String), I)) = { "$oid" : "oid(metamodel('" + M:String + "') ! cid('" + T:String + "'), '" + string(I,10) + "')" } .
+  eq fma2Json(oid(metamodel(M:String) ! cid(T:String), S)) = { "$oid" : "oid(metamodel('" + M:String + "') ! cid('" + T:String  + "'), " + S + "')" } .
+  
+  
+  
+   
+   
+
+
+
+
+  op notOidSentinel : IOidSet -> Bool .
+  eq notOidSentinel(N:Nat |-> sentinel ) = false .
+  eq notOidSentinel(iOS) = true [owise] .
+
+  op notSentinel : IObjectSet -> Bool .
+  eq notSentinel(N:Nat |-> sentinel ) = false .
+  eq notSentinel(iObjS) = true [owise] .   
+   
+   
+endm
+
+

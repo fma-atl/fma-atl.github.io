@@ -1,0 +1,113 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mod FMA-SYNTAX is
+  
+  inc MODEL .
+  
+  
+  sorts VarExpr Expr .
+  
+  op var : String -> VarExpr .
+  
+  sort ExprError .
+  
+  op error : String String Expr -> ExprError .
+  subsorts ValueExpr VarExpr FunCallExpr < Expr .
+  sort ValueExpr? .
+  subsorts ExprError ValueExpr < ValueExpr? .
+
+
+  
+
+  sorts Argument ArgList .
+  op nil : -> ArgList .
+  op _,_ : ArgList ArgList -> ArgList [assoc id: nil] .
+  subsort Argument < ArgList .
+  subsort Expr < Argument .
+
+  
+  
+  sorts FunName FunCallExpr .
+  
+  op fun : String -> FunName .
+  
+  op _`(_`) : FunName ArgList -> FunCallExpr .
+
+  sort ProcName ProcCallStmt .
+  subsort ProcCallStmt < SingletonStmt .
+  op proc : String -> ProcName .
+  op _`(_`) : ProcName ArgList -> ProcCallStmt .  
+
+  
+  
+  sort EnvP .
+  op empty : -> EnvP .
+  op __ : EnvP EnvP -> EnvP [comm assoc id: empty] .
+
+  
+  
+  
+  op procEnv : -> EnvP . 
+
+  
+  
+  
+  sort LetExpr .
+  subsort LetExpr < Expr .
+  op let_=_in_ : VarExpr Expr Expr -> LetExpr .
+  
+  
+  
+  
+  
+  sorts SingletonStmt Stmt StmtValue StmtError .
+  subsorts StmtValue StmtError SingletonStmt < Stmt .   
+  
+
+  op snapshot_{_} : VarExpr Stmt -> SingletonStmt . 
+  op let_=_in_ : VarExpr Stmt Stmt -> SingletonStmt . 
+  op let_=_in_ : VarExpr Expr Stmt -> SingletonStmt .
+  op create : QualifiedCid -> SingletonStmt .
+  op delete : VarExpr -> SingletonStmt .
+  op _;_ : Stmt Stmt -> Stmt [prec 50 assoc] .
+  op `(`) : -> StmtValue .
+  
+  op error : String String Stmt -> StmtError .
+  
+
+  
+  
+  
+
+  
+  
+  
+  
+  op create : PropName QualifiedCid -> SingletonStmt .
+  op set : PropName Expr -> SingletonStmt  .
+  op setCmt : PropName Expr -> SingletonStmt .  
+  op unset : PropName -> SingletonStmt . 
+  op unset : PropName VarExpr -> SingletonStmt .   
+  
+  
+  
+  
+
+endm
+

@@ -1,0 +1,33 @@
+-- example from [2011. TisiMartinezJouaultCabot. Refining Models with Rule-based Model Transformations]
+-- @atlcompiler atl2010
+-- @path Class=/fma.interpreter.atl/src/test/resources/fma/atl/refining/Class.ecore
+module Private2Public;
+create OUT : Class refining IN : Class;
+
+-- uses strings;
+
+rule PrivateAttribute {
+	from s : Class!Attribute (
+		s.isPrivate and
+		s.owner.op->exists(o|
+			o.name = 'get_' + s.name and 
+			o.returnType = s.type)
+	)
+	to s__ref : Class!Attribute ( 
+		isPrivate <- false
+	)
+}
+
+rule DeleteOperation {
+	from 
+		s : Class!Operation (
+			s.owner.attr->exists( a |
+				a.name = s.name.substring(5 , s.name.size() ) 
+				and 
+				a.isPrivate
+			)
+		)
+	to
+		drop 
+			
+}

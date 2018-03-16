@@ -1,0 +1,24 @@
+(0 |-> {prop("_id") = val(oid(metamodel("Class") ! cid(
+    "Package"), 0)),
+prop("classifiers") = val((0 |-> {prop("_id") = val(oid(metamodel("Class") !
+    cid("Class"), 0)),
+prop("attr") = val((0 |-> {prop("_id") = val(oid(metamodel("Class") ! cid(
+    "Attribute"), 0)),
+prop("isPrivate") = val(false),
+prop("name") = val("a"),
+prop("owner") = ref((0 |-> oid(metamodel("Class") ! cid("Class"), 0)) 1 |-> (
+    sentinel).Oid),
+prop("type") = ref((0 |-> oid(metamodel("Class") ! cid("DataType"), 0)) 1 |-> (
+    sentinel).Oid)}) 1 |-> (sentinel).Object),
+prop("name") = val("A"),
+prop("op") = val((1 |-> {prop("_id") = val(oid(metamodel("Class") ! cid(
+    "Operation"), 1)),
+prop("isPrivate") = val(false),
+prop("name") = val("operation"),
+prop("owner") = ref((0 |-> oid(metamodel("Class") ! cid("Class"), 0)) 1 |-> (
+    sentinel).Oid),
+prop("returnType") = ref((0 |-> oid(metamodel("Class") ! cid("DataType"), 0)) 1
+    |-> (sentinel).Oid)}) 2 |-> (sentinel).Object)}) (1 |-> {prop("_id") = val(
+    oid(metamodel("Class") ! cid("DataType"), 0)),
+prop("name") = val("String")}) 2 |-> (sentinel).Object),
+prop("name") = val("")}) 1 |-> (sentinel).Object

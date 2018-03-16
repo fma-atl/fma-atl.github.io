@@ -1,0 +1,60 @@
+mod MODEL is 
+  including mOdCL .
+  including PRE-MODEL-OCL .
+
+  
+  
+  eq oid(metamodel(MMName1:String) ! cid(C1:String), I1:Int) .<=. oid(metamodel(MMName2:String) ! cid(C2:String), I2:Int) =
+  (
+      MMName1:String leq MMName2:String
+    and
+      C1:String leq C2:String
+    and
+      I1:Int <=N I2:Int 
+  ) .
+endm
+
+fmod OCL-WEAKLY-SORTABLE-LIST'{X :: TOTAL-PREORDER} is
+  
+  protecting OCL-LIST-MRC{TOTAL-PREORDER}{X} * (sort NeList{TOTAL-PREORDER}{X} to NeList{X}, sort List{TOTAL-PREORDER}{X} to List{X}) .
+  sorts $Split{X} .
+  vars E E' : X$Elt .
+  vars A A' L L' : List{X} .
+  var N : NeList{X} .
+  op sort : List{X} -> List{X} .
+  op sort : NeList{X} -> NeList{X} .
+  op $sort : $Split{X} -> List{X} .
+  op $split : List{X} List{X} List{X} -> $Split{X} [ctor] .
+  op merge : List{X} List{X} -> List{X} .
+  op merge : NeList{X} List{X} -> NeList{X} .
+  op merge : List{X} NeList{X} -> NeList{X} .
+  op $merge : List{X} List{X} List{X} -> List{X} .
+  eq sort (nil) = nil .
+  eq sort (E) = E .
+  eq sort (E N) = $sort ($split (E N, nil, nil)) .
+  eq $sort ($split (nil, L, L')) = $merge (sort (L), sort (L'), nil) .
+  eq $split (E, A, A') = $split (nil, A E, A') .
+  eq $split (E L E', A, A') = $split (L, A E, E' A') .
+  eq merge (L, L') = $merge (L, L', nil) .
+  eq $merge (L, nil, A) = A L .
+  eq $merge (nil, L, A) = A L .
+  eq $merge (E L, E' L', A) = if E <= E' then $merge (L, E' L', A E) else $merge (E L, L', A E') fi .
+endfm
+
+fmod OCL-SORTABLE-LIST'{X :: TOTAL-ORDER} is
+  protecting OCL-WEAKLY-SORTABLE-LIST'{TOTAL-ORDER}{X} * (sort NeList{TOTAL-ORDER}{X} to NeList{X}, sort List{TOTAL-ORDER}{X} to List{X}) .
+endfm
+
+view Oid<= from TOTAL-ORDER to MODEL is
+  sort Elt to Oid .
+endv
+
+mod OID-SORTABLE-LIST' is
+  
+  
+  
+  pr OCL-SORTABLE-LIST'{Oid<=} .
+
+endm
+
+

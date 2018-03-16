@@ -1,0 +1,253 @@
+mod FMA-ATL-SYNTAX is
+  extending FMA-OCL-SEMANTICS .
+  
+  op queryDomain : VarExpr IObjectSet Map{QualifiedCid,Oid} Map{QualifiedCid,OuterMap} IObjectSet Map{QualifiedCid,OuterMap} -> K .
+
+
+  
+
+  
+  
+  
+  
+  
+  
+  sort AtlTrafoStmt .
+  op module_;___ : String TrafoHeaderAtlStmt RuleDeclListAtlStmt EnvP -> AtlTrafoStmt [ctor] .
+   
+  sort TrafoHeaderAtlStmt .
+  
+  
+  
+  op create_from_ : ParamList ParamList -> TrafoHeaderAtlStmt [ctor] .  
+  op create_refining_ : ParamList ParamList -> TrafoHeaderAtlStmt [ctor] .  
+  op create_in-place_ : ParamList ParamList -> TrafoHeaderAtlStmt [ctor] .  
+  
+  
+  
+  
+  
+  
+  sort RuleDeclAtlStmt .
+  
+  
+  
+  op rule_{from_:_in_`(_`)_to_} : ProcName VarExpr QualifiedCid VarExpr Expr UsingAtlRuleExpr? OutVarDeclListAtlRuleExpr -> RuleDeclAtlStmt [ctor] .
+  
+  op rule_{from_:_in__to_} : ProcName VarExpr QualifiedCid VarExpr UsingAtlRuleExpr? OutVarDeclListAtlRuleExpr -> RuleDeclAtlStmt [ctor] .
+  eq rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr } =
+  	rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr ( (DSL#Bool) true ) U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr } . 
+  	
+  sort LazyRuleDeclAtlStmt .
+  subsort LazyRuleDeclAtlStmt < RuleDeclAtlStmt . 
+  op lazy_ : RuleDeclAtlStmt -> LazyRuleDeclAtlStmt [ctor] . 
+  op unique`lazy_ : RuleDeclAtlStmt -> LazyRuleDeclAtlStmt [ctor] . 
+ 
+***( 
+  sort ModelNameAtlRuleExpr? ModelNameAtlRuleExpr .
+  subsort ModelNameAtlRuleExpr < ModelNameAtlRuleExpr? . 
+  op noName : -> ModelNameAtlRuleExpr? [ctor] . 
+  
+  op in_ : VarExpr -> ModelNameAtlRuleExpr [ctor] .
+)
+  
+  sort UsingAtlRuleExpr? UsingAtlRuleExpr .
+  subsort UsingAtlRuleExpr < UsingAtlRuleExpr? . 
+  op noUsing : -> UsingAtlRuleExpr? [ctor] . 
+  op using{_} : UsingVarDeclListExpr -> UsingAtlRuleExpr [ctor] .
+
+  sort UsingVarDeclListExpr UsingVarDeclExpr .
+  subsort UsingVarDeclExpr < UsingVarDeclListExpr .
+  op __ : UsingVarDeclListExpr UsingVarDeclListExpr -> UsingVarDeclListExpr [ctor assoc] .   
+  op _:_=_; : VarExpr FmaType Expr -> UsingVarDeclExpr [ctor] .   
+  
+  
+  
+  op rule_{from_:_in_to_} : ProcName VarExpr QualifiedCid VarExpr OutVarDeclListAtlRuleExpr -> RuleDeclAtlStmt [ctor] .
+  eq rule PR:ProcName { from V:VarExpr : C:QualifiedCid in MN:VarExpr to OV:OutVarDeclListAtlRuleExpr } =
+  	rule PR:ProcName { from V:VarExpr : C:QualifiedCid in MN:VarExpr noUsing to OV:OutVarDeclListAtlRuleExpr } . 
+  op rule_{from_:_in_`(_`)to_} : ProcName VarExpr QualifiedCid VarExpr OclExpInv OutVarDeclListAtlRuleExpr -> RuleDeclAtlStmt [ctor] .
+  eq rule PR:ProcName { from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) to OV:OutVarDeclListAtlRuleExpr } =
+  	rule PR:ProcName { from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) noUsing to OV:OutVarDeclListAtlRuleExpr } . 
+  
+
+  op getDomainName : OutVarDeclListAtlRuleExpr -> VarExpr .
+  eq getDomainName( V:VarExpr : C:QualifiedCid in MN:VarExpr ( BL:BindingListAtlRuleExpr ) ) = MN:VarExpr .
+  
+  sort OutVarDeclAtlRuleExpr OutVarDeclListAtlRuleExpr .
+  subsort OutVarDeclAtlRuleExpr < OutVarDeclListAtlRuleExpr .
+  op _,_ : OutVarDeclListAtlRuleExpr OutVarDeclListAtlRuleExpr -> OutVarDeclListAtlRuleExpr [ctor assoc] .   
+  op _:_in_`(_`) : VarExpr QualifiedCid VarExpr BindingListAtlRuleExpr -> OutVarDeclAtlRuleExpr [ctor] . 
+  op _:_in_`(`) : VarExpr QualifiedCid VarExpr -> OutVarDeclAtlRuleExpr [ctor] . 
+  eq V:VarExpr : C:QualifiedCid in MN:VarExpr ( ) = V:VarExpr : C:QualifiedCid in MN:VarExpr ( noBinding ) . 
+
+  
+  
+  op drop : VarExpr VarExpr -> OutVarDeclAtlRuleExpr [ctor] .
+  
+  
+  
+  
+  
+  
+  
+  
+  op drop : VarExpr Expr PropName VarExpr -> OutVarDeclAtlRuleExpr [ctor] .
+  
+  sort BindingAtlRuleExpr BindingListAtlRuleExpr . 
+  subsort BindingAtlRuleExpr < BindingListAtlRuleExpr .
+  op _,_ : BindingListAtlRuleExpr BindingListAtlRuleExpr -> BindingListAtlRuleExpr [ctor assoc id: noBinding] .
+  op noBinding : -> BindingListAtlRuleExpr [ctor] . 
+  
+  op _<-_ : PropName Expr -> BindingAtlRuleExpr [ctor] .
+  
+  sort RuleDeclListAtlStmt .
+  subsort RuleDeclAtlStmt < RuleDeclListAtlStmt .
+  op __ : RuleDeclListAtlStmt RuleDeclListAtlStmt -> RuleDeclListAtlStmt [ctor assoc id: noAtlRuleDecl] .
+  op noAtlRuleDecl : -> RuleDeclListAtlStmt [ctor] .
+  
+   
+  
+  
+  
+  
+  
+  
+  
+  
+  sort AtlBindingExpr LazyRuleInvExpr ResolveTempInvExpr .
+  subsort ResolveTempInvExpr LazyRuleInvExpr < AtlBindingExpr < Expr   .
+  op resolveTemp`(_,_`) : Expr ValueExpr -> ResolveTempInvExpr .   
+
+  
+
+              
+              
+  
+  
+  
+  op _->`collect`(_|`thisModule`._`(_`)`)  : Expr VarExpr ProcName VarExpr -> LazyRuleInvExpr .    
+
+
+  
+  
+  
+  
+  
+  sorts LazyRuleInvAtlStmt AtlStmt . 
+  subsort LazyRuleInvAtlStmt < AtlStmt < SingletonStmt .
+  
+  
+
+  
+  
+  
+
+  
+  
+  op setCmtLazyRule : PropName ProcName Expr -> LazyRuleInvAtlStmt .
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  sort AtlStaticHelperDecl AtlContextualHelperDecl AtlAttributeDecl AtlProcDecl .
+  subsorts AtlStaticHelperDecl AtlContextualHelperDecl AtlAttributeDecl < AtlProcDecl < ProcDecl .
+    
+  
+  
+  
+  
+  
+  
+  op helper`context_def`:_`(_`):_=_; : QualifiedCid ProcName ParamList Scalar Expr -> AtlContextualHelperDecl .
+  
+  op helper`context_def`:_`(`):_=_; : QualifiedCid ProcName Scalar Expr -> AtlContextualHelperDecl .
+  eq helper context CONTEXT-TYPE:QualifiedCid def : PN:ProcName ( ) : RETURN-TYPE:Scalar = BODY:Expr ;  =
+   	helper context CONTEXT-TYPE:QualifiedCid def : PN:ProcName ( nil ) : RETURN-TYPE:Scalar = BODY:Expr ; .
+  
+  
+  
+  
+
+  
+  
+  
+  op helper`def`:_`(_`):_=_; : ProcName ParamList Scalar Expr -> AtlStaticHelperDecl .
+  
+  op helper`def`:_`(`):_=_; : ProcName Scalar Expr -> AtlStaticHelperDecl .
+  eq helper def : PN:ProcName ( ) : RETURN-TYPE:Scalar = BODY:Expr ; =
+  helper def : PN:ProcName ( nil ) : RETURN-TYPE:Scalar = BODY:Expr  ; .
+  
+  
+  
+  
+  op helper`def`:_:_=_; : ProcName Scalar Expr -> AtlAttributeDecl .
+
+  
+  
+
+  	
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op _._`(_`) : Expr ProcName ArgList -> FunCallExpr [ctor] .  	
+  op _._`(`) : Expr ProcName -> FunCallExpr .
+  eq EX:Expr . PN:ProcName ( ) =  (EX:Expr . PN:ProcName ( nil )) .   	
+  
+  op super : -> VarExpr . 
+  
+  
+  
+  
+  op thisModule`._`(_`) : ProcName ArgList -> FunCallExpr [ctor] .
+  op thisModule`._`(`) : ProcName -> FunCallExpr [ctor] .
+  eq thisModule . PN:ProcName () = thisModule . PN:ProcName ( nil ) .
+  
+  op thisModule`._ : ProcName -> FunCallExpr [ctor] .
+  
+  
+  
+  
+  
+  
+  
+ 
+
+  
+  
+  
+  
+  
+
+  
+  sort SingletonTraceStmt TraceStmtValue TraceStmt .
+  
+  op tUnit : -> TraceStmtValue . 
+  
+  op insertTraceLink : VarExpr ValueExpr ValueExpr VarExpr -> SingletonTraceStmt .
+
+  subsorts SingletonTraceStmt TraceStmtValue < TraceStmt .
+  op _;_ : TraceStmt TraceStmt -> TraceStmt [prec 50 assoc] .
+
+endm
+
+

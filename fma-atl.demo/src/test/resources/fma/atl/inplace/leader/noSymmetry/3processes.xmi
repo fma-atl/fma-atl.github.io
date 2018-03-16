@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fma-atl:Network xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:fma-atl="org.fma-atl">
+  <processes pID="0" active="false" leader="false" next="//@processes.2"/>
+  <processes pID="2" active="false" leader="false" next="//@processes.0"/>
+  <processes pID="1" active="false" leader="false" next="//@processes.1"/>
+</fma-atl:Network>

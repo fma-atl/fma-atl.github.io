@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notation:Diagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" type="Hierarchicalgraph" measurementUnit="Pixel">
+  <children xsi:type="notation:Shape" type="2001" fontName=".AppleSystemUIFont">
+    <children xsi:type="notation:DecorationNode" type="5003"/>
+    <children xsi:type="notation:BasicCompartment" type="7001">
+      <styles xsi:type="notation:SortingStyle"/>
+      <styles xsi:type="notation:FilteringStyle"/>
+    </children>
+    <children xsi:type="notation:BasicCompartment" type="7002">
+      <children xsi:type="notation:Shape" type="3001" fontName=".AppleSystemUIFont">
+        <children xsi:type="notation:DecorationNode" type="5002"/>
+        <children xsi:type="notation:BasicCompartment" type="7003">
+          <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+            <children xsi:type="notation:DecorationNode" type="5001"/>
+            <children xsi:type="notation:BasicCompartment" type="7004">
+              <styles xsi:type="notation:SortingStyle"/>
+              <styles xsi:type="notation:FilteringStyle"/>
+            </children>
+            <children xsi:type="notation:BasicCompartment" type="7005">
+              <children xsi:type="notation:Shape" type="3001" fontName=".AppleSystemUIFont">
+                <children xsi:type="notation:DecorationNode" type="5002"/>
+                <children xsi:type="notation:BasicCompartment" type="7003">
+                  <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+                    <children xsi:type="notation:DecorationNode" type="5001"/>
+                    <children xsi:type="notation:BasicCompartment" type="7004">
+                      <styles xsi:type="notation:SortingStyle"/>
+                      <styles xsi:type="notation:FilteringStyle"/>
+                    </children>
+                    <children xsi:type="notation:BasicCompartment" type="7005"/>
+                    <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                    <element href="model3.xmi.moment2Model#_pNfsEyUiEeiZs4dLU1ToNg"/>
+                    <layoutConstraint xsi:type="notation:Bounds" x="32" y="32"/>
+                  </children>
+                  <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+                    <children xsi:type="notation:DecorationNode" type="5001"/>
+                    <children xsi:type="notation:BasicCompartment" type="7004">
+                      <styles xsi:type="notation:SortingStyle"/>
+                      <styles xsi:type="notation:FilteringStyle"/>
+                    </children>
+                    <children xsi:type="notation:BasicCompartment" type="7005"/>
+                    <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                    <element href="model3.xmi.moment2Model#_pNfsFCUiEeiZs4dLU1ToNg"/>
+                    <layoutConstraint xsi:type="notation:Bounds" x="192" y="32"/>
+                  </children>
+                </children>
+                <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                <element href="model3.xmi.moment2Model#//@objects.0/@references.0/@value.0/@references.0"/>
+                <layoutConstraint xsi:type="notation:Bounds" x="30" y="32"/>
+              </children>
+              <children xsi:type="notation:Shape" type="3001" fontName=".AppleSystemUIFont">
+                <children xsi:type="notation:DecorationNode" type="5002"/>
+                <children xsi:type="notation:BasicCompartment" type="7003">
+                  <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+                    <children xsi:type="notation:DecorationNode" type="5001"/>
+                    <children xsi:type="notation:BasicCompartment" type="7004">
+                      <styles xsi:type="notation:SortingStyle"/>
+                      <styles xsi:type="notation:FilteringStyle"/>
+                    </children>
+                    <children xsi:type="notation:BasicCompartment" type="7005"/>
+                    <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                    <element href="model3.xmi.moment2Model#_pNfsFSUiEeiZs4dLU1ToNg"/>
+                    <layoutConstraint xsi:type="notation:Bounds" x="30" y="30"/>
+                  </children>
+                  <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+                    <children xsi:type="notation:DecorationNode" type="5001"/>
+                    <children xsi:type="notation:BasicCompartment" type="7004">
+                      <styles xsi:type="notation:SortingStyle"/>
+                      <styles xsi:type="notation:FilteringStyle"/>
+                    </children>
+                    <children xsi:type="notation:BasicCompartment" type="7005"/>
+                    <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                    <element href="model3.xmi.moment2Model#_pNgTICUiEeiZs4dLU1ToNg"/>
+                    <layoutConstraint xsi:type="notation:Bounds" x="194" y="30"/>
+                  </children>
+                </children>
+                <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+                <element href="model3.xmi.moment2Model#//@objects.0/@references.0/@value.0/@references.1"/>
+                <layoutConstraint xsi:type="notation:Bounds" x="402" y="32"/>
+              </children>
+            </children>
+            <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+            <element href="model3.xmi.moment2Model#_pNfsEiUiEeiZs4dLU1ToNg"/>
+            <layoutConstraint xsi:type="notation:Bounds" x="28" y="32"/>
+          </children>
+          <children xsi:type="notation:Shape" type="3002" fontName=".AppleSystemUIFont">
+            <children xsi:type="notation:DecorationNode" type="5001"/>
+            <children xsi:type="notation:BasicCompartment" type="7004">
+              <styles xsi:type="notation:SortingStyle"/>
+              <styles xsi:type="notation:FilteringStyle"/>
+            </children>
+            <children xsi:type="notation:BasicCompartment" type="7005"/>
+            <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+            <element href="model3.xmi.moment2Model#_pNgTISUiEeiZs4dLU1ToNg"/>
+            <layoutConstraint xsi:type="notation:Bounds" x="278" y="352"/>
+          </children>
+        </children>
+        <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+        <element href="model3.xmi.moment2Model#//@objects.0/@references.0"/>
+        <layoutConstraint xsi:type="notation:Bounds" x="30" y="32" width="821" height="489"/>
+      </children>
+    </children>
+    <styles xsi:type="notation:HintedDiagramLinkStyle"/>
+    <element href="model3.xmi.moment2Model#_pNfsESUiEeiZs4dLU1ToNg"/>
+    <layoutConstraint xsi:type="notation:Bounds" x="32" y="32"/>
+  </children>
+  <styles xsi:type="notation:DiagramStyle"/>
+  <element href="model3.xmi.moment2Model#_pNfsECUiEeiZs4dLU1ToNg"/>
+</notation:Diagram>

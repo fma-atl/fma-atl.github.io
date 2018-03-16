@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:CD="org.fma.Class">
+  <CD:Package
+      name="Types">
+    <classifiers
+        xsi:type="CD:DataType"
+        name="String"/>
+    <classifiers
+        xsi:type="CD:DataType"
+        name="Integer"/>
+  </CD:Package>
+  <CD:Package
+      name="Package - 0">
+    <classifiers
+        xsi:type="CD:Class"
+        name="A - 0"
+        isAbstract="false">
+      <attr
+          name="name - 0"
+          multiValued="false"
+          type="/0/@classifiers.0"/>
+    </classifiers>
+  </CD:Package>
+</xmi:XMI>

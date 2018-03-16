@@ -1,0 +1,43 @@
+@namespace(uri="top", prefix="top")
+package top;
+
+@namespace(uri="org.fma.Class.PrimitiveTypes", prefix="PrimitiveTypes")
+package PrimitiveTypes {
+  datatype Boolean : boolean;
+
+  datatype Integer : int;
+
+  datatype String : java.lang.String;
+
+}
+
+@namespace(uri="org.fma.Class", prefix="CD")
+package CD {
+  abstract class NamedElt {
+    !ordered attr PrimitiveTypes.String[1] name;
+  }
+
+  abstract class Classifier extends NamedElt {
+  }
+
+  class DataType extends Classifier {
+  }
+
+  class Class extends Classifier {
+    !ordered ref Class[*] ~super;
+    val Attribute[*]#owner ~attr;
+    !ordered attr PrimitiveTypes.Boolean[1] isAbstract;
+  }
+
+  class Attribute extends NamedElt {
+    !ordered attr PrimitiveTypes.Boolean[1] multiValued;
+    !ordered ref Classifier[1] type;
+    !ordered ref Class[1]#~attr owner;
+  }
+
+  class Package extends Classifier {
+    val Classifier[*] classifiers;
+  }
+
+}
+

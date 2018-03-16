@@ -1,0 +1,3308 @@
+mod FMA-ATL-TYPE-INFERENCE is
+  extending FMA-ATL-SYNTAX .
+  
+  
+endm
+
+mod FMA-ATL-TYPE-CHECKER is
+  protecting FMA-ATL-TYPE-INFERENCE .
+  
+endm
+
+
+mod FMA-ATL-MATCH is
+  protecting FMA-SEMANTICS .
+
+  sort Match .
+  
+  op match : ProcName Map{VarExpr,ValueExpr} -> Match [ctor] .
+
+  sort WeightedMatch .
+  op wMatch : Match Rat -> WeightedMatch [ctor] .
+
+  op _<=_ : WeightedMatch WeightedMatch -> Bool . 
+  eq wMatch(M1:Match, W1:Rat) <= wMatch(M2:Match, W2:Rat) = 
+    W1:Rat <= W2:Rat .
+endm
+
+view WeightedMatch<= from TOTAL-ORDER to FMA-ATL-MATCH is
+  sort Elt to WeightedMatch .
+endv
+
+mod WEIGHTED-MATCH-SORTABLE-LIST' is
+  
+  
+  
+  pr OCL-SORTABLE-LIST'{WeightedMatch<=} .
+
+endm
+
+mod FMA-ATL-SEMANTICS is
+  including FMA-ATL-TYPE-CHECKER .
+  including EMF-GRAPH .
+  including OID-SORTABLE-LIST' .
+  including WEIGHTED-MATCH-SORTABLE-LIST' .
+  including OCL-SET{QualifiedCid} .
+  
+  var TrS : TraceStmt .
+  var SVAR TVAR : VarExpr .
+  var VAL SVAL TVAL RN TVARNAME : ValueExpr . 
+  var SO TO : Oid .
+  var VM : Map{VarExpr,ValueExpr} .
+  vars K1 K2 : K .
+  var OTLM OTLM' GlobalM LocalM GlobalM1 LocalM1 GlobalM2 LocalM2 GlobalM3 GlobalM4 LocalM3 LocalM4 HM1 HM4 : Map{QualifiedCid,OuterTraceMap} . 
+  var QC : QualifiedCid .
+  var OID : Int .
+  var O O1 O2 : Oid .
+  vars L L' : Location .
+  var C : QualifiedCid .
+  vars N N1 N2 : Nat .
+  var NEW OUTNEW OUTNEW2 INNEW SNEW : Map{QualifiedCid,Oid} .
+  var SandpitOS SandpitOS2 OUTSandpitOS OUTSandpitOS2 OUTSandpitOS3 INSandpitOS OS OUTOS OUTOS2 : IObjectSet .
+  var LOC LOC2 LOC3 OUTLOC OUTLOC2 OUTLOC3 INLOC GLOC SandpitLOC SandpitLOC2 SandpitLOC3 OUTSandpitLOC OUTSandpitLOC2 OUTSandpitLOC3 INSandpitLOC : Map{QualifiedCid,OuterMap} .
+  vars WHOLELOC WLOC CHILDLOC : Map{QualifiedCid,OuterMap} .
+  var OIDL : List{Oid<=} .
+  var NS : Set{EmfNode} .
+  var ES : Set{EmfEdge} .
+  
+
+
+
+
+  op isInPlace? : Object -> Bool . 
+  eq isInPlace?({ prop("mode") = val("in-place"), PS }) = true .
+  eq isInPlace?(Obj:Object) = false [owise] .
+
+
+  op isRefining? : Object -> Bool . 
+  eq isRefining?({ prop("mode") = val("refining"), PS }) = true .
+  eq isRefining?(Obj:Object) = false [owise] .
+
+  
+  
+  
+  
+  sorts AtlKWrapper .
+  
+  op atlK : K -> AtlKWrapper .
+  op atlMatchingK : K -> AtlKWrapper .
+  op atlDomainK : K -> AtlKWrapper .
+  op atlInit : K -> AtlKWrapper .
+
+  
+  op exprTrace : Map{QualifiedCid,OuterTraceMap} -> K .
+  
+   
+  
+
+
+
+
+  
+  op actions : DomainStmtSet -> K [ctor] .
+  
+
+  
+  
+  
+  
+  sort SandpitSplit .
+  op <_;_;_;_> : IObjectSet Map{QualifiedCid,OuterMap} IObjectSet Map{QualifiedCid,OuterMap} -> SandpitSplit .
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op domain : VarExpr IObjectSet Map{QualifiedCid,Oid} Map{QualifiedCid,OuterMap} IObjectSet Map{QualifiedCid,OuterMap} -> K .
+  op getModel : K -> IObjectSet .
+  eq getModel(    domain(
+      V:VarExpr, 
+      OS:IObjectSet, 
+      NEW, 
+      LOC, 
+      SandpitOS, 
+      SandpitLOC
+    ) ) = OS:IObjectSet .
+  op getSandpit : K -> IObjectSet .
+  eq getSandpit(    domain(
+      V:VarExpr, 
+      OS:IObjectSet, 
+      NEW, 
+      LOC, 
+      SandpitOS, 
+      SandpitLOC
+    ) ) = SandpitOS .
+
+
+
+  
+  op getDomainModel : VarExpr AtlKWrapper -> IObjectSet .
+  eq getDomainModel( V:VarExpr, 
+      atlMatchingK(
+        K:K 
+        | domain(
+          V:VarExpr, 
+          OS:IObjectSet, 
+          NEW, 
+          LOC, 
+          SandpitOS, 
+          SandpitLOC
+        ) 
+      ) 
+    ) = OS:IObjectSet .
+
+  
+  op getEnv : VarExpr AtlKWrapper -> Env .
+  eq getEnv( 
+    V:VarExpr, 
+    atlMatchingK(
+      K:K 
+      | domain(
+        V:VarExpr, 
+        OS:IObjectSet, 
+        NEW, 
+        LOC, 
+        SandpitOS, 
+        SandpitLOC
+      ) 
+    ) 
+  ) = var(empty) new(NEW) loc(LOC) .
+
+  
+
+  op atlStmt : AtlTrafoStmt -> K [ctor] .
+  op atlStmt : RuleDeclListAtlStmt -> K [ctor] .
+  op atlStmt : AtlProcDecl -> K [ctor] .
+
+  sorts AtlRule AtlRuleSet .
+  subsort AtlRule < AtlRuleSet .
+  op __ : AtlRuleSet AtlRuleSet -> AtlRuleSet [ctor comm assoc id: noAtlRule] .
+  op noAtlRule : -> AtlRuleSet .
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op atlRule : ProcName QualifiedCid VarExpr VarExpr Expr DomainStmtSet -> AtlRule [ctor] .
+  op atlLazyRule : ProcName QualifiedCid VarExpr VarExpr Expr DomainStmtSet -> AtlRule [ctor] .
+  op atlUniqueLazyRule : ProcName QualifiedCid VarExpr VarExpr Expr DomainStmtSet -> AtlRule [ctor] .
+
+  sort DomainStmt DomainStmtSet .
+  subsort DomainStmt < DomainStmtSet .
+  
+  
+  
+  
+  op domainStmt : VarExpr Stmt Stmt TraceStmt -> DomainStmt [ctor] .
+  op __ : DomainStmtSet DomainStmtSet -> DomainStmtSet [ctor assoc comm id: noDomainStmt] .
+  op noDomainStmt : -> DomainStmtSet .
+
+  op ruleStore : AtlRuleSet -> K [ctor] .
+
+  op mode : AtlSemanticsMode -> K [ctor] .
+  sort AtlSemanticsMode .
+  op normal : -> AtlSemanticsMode [ctor] .
+  op refining : -> AtlSemanticsMode [ctor] .
+  op in-place : -> AtlSemanticsMode [ctor] .
+
+
+
+  op getAtlSemanticsMode : TrafoHeaderAtlStmt -> AtlSemanticsMode .
+  eq getAtlSemanticsMode(create PL1:ParamList from PL2:ParamList) = normal .
+  eq getAtlSemanticsMode(create PL1:ParamList refining PL2:ParamList) = refining .
+  eq getAtlSemanticsMode(create PL1:ParamList in-place PL2:ParamList) = in-place .
+
+  
+  
+  
+  
+  
+
+
+
+***(
+  
+  
+  
+  
+  
+  
+  
+  op findWeightedMatches : AtlRuleSet IObjectSet Map{QualifiedCid,Oid} Map{QualifiedCid,OuterMap} -> List{WeightedMatch<=} .
+  eq findWeightedMatches( ARS:AtlRuleSet, OS, NEW, LOC ) =
+    sort(
+      weightMatches(
+        findMatches( ARS:AtlRuleSet, OS, var(empty) new(NEW) loc(LOC) ), 
+        buildWeightedLocation(LOC, buildRootObjectPosList(OS))
+      )
+    )
+  .
+
+
+
+
+  
+  sort WeigthedLocation .
+  subsort WeigthedLocation < Location .
+  op wLoc : Location Rat -> WeigthedLocation [ctor] .
+
+ 
+  
+  op buildWeightedLocation : Map{QualifiedCid,OuterMap} List{Oid<=} -> Map{QualifiedCid,OuterMap} .
+  eq buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> loc(O),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    OIDL
+  ) = buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> wLoc(loc(O), weight(loc(O), OIDL)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    OIDL
+  ) .
+  eq buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> (L . L')),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    OIDL
+  ) = buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> wLoc((L . L'), weight((L . L'), OIDL)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    OIDL
+  ) .  
+  eq buildWeightedLocation( LOC, OIDL ) = LOC [owise] .
+
+
+
+
+
+  
+  op weightMatches : MatchPool Map{QualifiedCid,OuterMap} -> List{WeightedMatch<=} .
+  eq weightMatches( noMatch, WLOC ) = nil .
+  eq weightMatches( M:Match MP:MatchPool, WLOC ) = 
+    getWeightedMatch(M:Match, WLOC) weightMatches( MP:MatchPool, WLOC ) .
+
+  op getWeightedMatch : Match Map{QualifiedCid,OuterMap} -> WeightedMatch .
+  eq getWeightedMatch( match(RN:ProcName, SUBS:Map{VarExpr, ValueExpr}), LOC ) =
+    wMatch(
+      match(RN:ProcName, SUBS:Map{VarExpr, ValueExpr}), 
+      weightMatch(SUBS:Map{VarExpr,ValueExpr}, LOC, 0)
+    ) .
+
+  op weightMatch : Map{VarExpr,ValueExpr} Map{QualifiedCid,OuterMap} Rat -> Rat .
+  eq weightMatch( empty, LOC, W:Rat ) = W:Rat .
+  eq weightMatch( 
+    ((var(VN:String) |-> val(O)), VM:Map{VarExpr,ValueExpr}),
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> wLoc(loc(O), W:Rat)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      WLOC
+    ),
+    TW:Rat
+  ) = weightMatch( 
+    VM:Map{VarExpr,ValueExpr},
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> wLoc(loc(O), W:Rat)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      WLOC
+    ),
+    W:Rat + TW:Rat
+  ) .
+  eq weightMatch( 
+    ((var(VN:String) |-> val(O)), VM:Map{VarExpr,ValueExpr}),
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> wLoc((L . loc(O)), W:Rat)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      WLOC
+    ),
+    TW:Rat
+  ) = weightMatch( 
+    VM:Map{VarExpr,ValueExpr},
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> wLoc((L . loc(O)), W:Rat)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      WLOC
+    ),
+    W:Rat + TW:Rat
+  ) .
+
+)
+
+
+
+
+***(
+  
+  op buildWeightedLocation : Map{QualifiedCid,OuterMap}  List{Oid<=} -> Map{QualifiedCid,OuterMap} .
+  eq buildWeightedLocation( LOC, OIDL ) =
+    buildWeightedLocation( LOC, LOC, OIDL ) . 
+
+
+  
+  op buildWeightedLocation : Map{QualifiedCid,OuterMap} Map{QualifiedCid,OuterMap} List{Oid<=} -> Map{QualifiedCid,OuterMap} .
+  eq buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> loc(O),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    WHOLELOC,
+    OIDL
+  ) = buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> wLoc(loc(O), weight(loc(O), WHOLELOC, OIDL)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    WHOLELOC,
+    OIDL
+  ) .
+  eq buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> (L . L')),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    WHOLELOC,
+    OIDL
+  ) = buildWeightedLocation( 
+    (
+      C |-> (
+        N1 |-> (
+          N2 |-> wLoc((L . L'), weight((L . L'), WHOLELOC, OIDL)),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    WHOLELOC,
+    OIDL
+  ) .  
+  eq buildWeightedLocation( LOC, WHOLELOC, OIDL ) = LOC [owise] .
+
+  
+  
+  
+  
+  
+  
+  op weight : Location Map{QualifiedCid,OuterMap} List{Oid<=} -> Rat .
+  ceq weight( L, WHOLELOC, OIDL ) = 
+    (pos(rootOid(L),OIDL) *N 1000) +N length(L) +N 
+      
+      
+        (W:Rat -N ((size(CHILDLOC) *N (pos(rootOid(L),OIDL) *N 1000))))
+      
+  if 
+  CHILDLOC := fetchDirectChildren(L, WHOLELOC)
+  /\
+  W:Rat := weight(CHILDLOC, WHOLELOC, OIDL) .
+
+  op weight : Map{QualifiedCid,OuterMap} Map{QualifiedCid,OuterMap} List{Oid<=} -> Rat . 
+  eq weight( 
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> L),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    WHOLELOC, 
+    OIDL 
+  ) = weight( L, WHOLELOC, OIDL ) +N 
+    weight( 
+      (
+        C |-> (
+          N1 |-> (
+            IMLoc:Map{Nat,Location}
+          ),
+          OMLoc:Map{Nat,InnerMap}
+        ), 
+        LOC
+      ), 
+      WHOLELOC, 
+      OIDL 
+    ) .
+  eq weight( LOC, WHOLELOC, OIDL ) = 0 [owise] .    
+
+
+
+
+
+  op fetchDirectChildren : Location Map{QualifiedCid,OuterMap} -> Map{QualifiedCid,OuterMap} .
+  eq fetchDirectChildren( L:Location, LOC ) = 
+    fetchDirectChildren( L:Location, LOC, empty ) .
+
+  op fetchDirectChildren : Location Map{QualifiedCid,OuterMap} Map{QualifiedCid,OuterMap} -> Map{QualifiedCid,OuterMap} .
+  eq fetchDirectChildren( 
+    L:Location, 
+    (
+      C |-> (
+        N1 |-> (
+          (N2 |-> (L . loc(P) . loc(O))),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    ),
+    CHILDLOC 
+  ) = 
+    fetchDirectChildren( 
+      L:Location, 
+      (
+        C |-> (
+          N1 |-> (
+            IMLoc:Map{Nat,Location}
+          ),
+          OMLoc:Map{Nat,InnerMap}
+        ), 
+        LOC
+      ), 
+      put(O, (L . loc(P) . loc(O)), CHILDLOC )
+    ) .
+  eq fetchDirectChildren( L:Location, LOC, CHILDLOC ) = 
+    CHILDLOC [owise] .
+
+  op size : Map{QualifiedCid,OuterMap} -> Nat .
+  eq size( (
+      C |-> (
+        N1 |-> (
+          (N2 |-> L),
+          IMLoc:Map{Nat,Location}
+        ),
+        OMLoc:Map{Nat,InnerMap}
+      ), 
+      LOC
+    )
+  ) = 1 +N 
+    size( 
+      (
+        C |-> (
+          N1 |-> (
+            IMLoc:Map{Nat,Location}
+          ),
+          OMLoc:Map{Nat,InnerMap}
+        ), 
+        LOC
+      )
+    ) .
+  eq size( LOC ) = 0 [owise] .
+
+)
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  op findWeightedMatches : AtlRuleSet IObjectSet Map{QualifiedCid,Oid} Map{QualifiedCid,OuterMap} -> List{WeightedMatch<=} .
+  eq findWeightedMatches( ARS:AtlRuleSet, OS, NEW, LOC ) =
+    sort(
+      weightMatches(
+        findMatches( ARS:AtlRuleSet, OS, var(empty) new(NEW) loc(LOC) ), 
+        LOC,
+        buildRootObjectPosList(OS)
+      )
+    )
+  .
+
+***(
+
+  NO IMPROVEMENT
+  op findWeightedMatchesPerAggregate : AtlRuleSet IObjectSet Map{QualifiedCid,Oid} -> List{WeightedMatch<=} .
+  eq findWeightedMatchesPerAggregate( ARS:AtlRuleSet, OS, NEW ) =
+    findWeightedMatchesPerAggregate( ARS:AtlRuleSet, OS, NEW, buildRootObjectPosList(OS), nil ) .
+
+  op findWeightedMatchesPerAggregate : AtlRuleSet IObjectSet Map{QualifiedCid,Oid} List{Oid<=} List{WeightedMatch<=} -> List{WeightedMatch<=} .
+  ceq findWeightedMatchesPerAggregate( ARS:AtlRuleSet, (N |-> { PS }) OS, NEW, OIDL, WL:List{WeightedMatch<=} ) =
+    findWeightedMatchesPerAggregate( 
+      ARS:AtlRuleSet, OS, NEW, OIDL,
+      WL:List{WeightedMatch<=} 
+      sort(
+        weightMatches(
+          findMatches( ARS:AtlRuleSet, (N |-> { PS }), var(empty) new(NEW) loc(LOC) ), 
+          LOC,
+          OIDL
+        )
+      )
+    )
+  if LOC := buildLocStoreRootObject( { PS }, empty ) .
+  eq findWeightedMatchesPerAggregate( ARS:AtlRuleSet, OS, NEW, OIDL, WL:List{WeightedMatch<=} ) =
+    WL:List{WeightedMatch<=} [owise] .
+)
+
+
+  
+  
+  
+  
+  
+  
+  op weight : Location List{Oid<=} -> Rat .
+  eq weight( L, OIDL ) = 
+    ((pos(rootOid(L),OIDL) *N 1000) +N (1 / length(L)))  .
+
+  
+  op length : Location -> Nat .
+  eq length( loc(O) ) = 1 .
+  eq length( loc(P) ) = 1 .
+  eq length( L . L' ) = length(L) +N length(L') . 
+
+  
+  op buildRootObjectPosList : IObjectSet -> List{Oid<=} .
+  eq buildRootObjectPosList( OS ) = sort(buildRootObjectPosList( OS, nil )) .
+ 
+  op buildRootObjectPosList : IObjectSet List{Oid<=} -> List{Oid<=} .
+  eq buildRootObjectPosList( (N1 |-> { PS }) OS, OIDL ) = 
+    buildRootObjectPosList( OS, oid({PS}) OIDL ) .
+  eq buildRootObjectPosList( OS, OIDL ) = OIDL [owise] .
+
+  
+  op pos : Oid List{Oid<=} -> Int .
+  eq pos(O, O OIDL) = 1 . 
+  eq pos(O, nil) = -1 . 
+  ceq pos(O1, O2 OIDL) = 1 +N pos(O1, OIDL) if O1 =/= O2 .
+
+  
+  
+  op weightMatches : MatchPool Map{QualifiedCid,OuterMap} List{Oid<=} -> List{WeightedMatch<=} .
+  eq weightMatches( noMatch, LOC, OIDL ) = nil .
+  eq weightMatches( M:Match MP:MatchPool, LOC, OIDL ) = 
+    getWeightedMatch(M:Match, LOC, OIDL) weightMatches( MP:MatchPool, LOC, OIDL ) .
+
+  op getWeightedMatch : Match Map{QualifiedCid,OuterMap} List{Oid<=} -> WeightedMatch .
+  eq getWeightedMatch( match(RN:ProcName, SUBS:Map{VarExpr, ValueExpr}), LOC, OIDL ) =
+    wMatch(
+      match(RN:ProcName, SUBS:Map{VarExpr, ValueExpr}), 
+      weightMatch(SUBS:Map{VarExpr,ValueExpr}, LOC, OIDL, 0)
+    ) .
+
+  op weightMatch : Map{VarExpr,ValueExpr} Map{QualifiedCid,OuterMap} List{Oid<=} Rat -> Rat .
+  eq weightMatch( empty, LOC, OIDL, W:Rat ) = W:Rat .
+  eq weightMatch( 
+    ((var(VN:String) |-> val(O)), VM:Map{VarExpr,ValueExpr}),
+    LOC,
+    OIDL,
+    W:Rat
+  ) = weightMatch( 
+    VM:Map{VarExpr,ValueExpr},
+    LOC,
+    OIDL,
+    W:Rat + weight( get(O, LOC), OIDL ) 
+  ) .
+
+
+
+
+  
+  
+  
+  
+  
+
+  
+  
+  
+  sort TraceKWrapper .
+  op traceK : K -> TraceKWrapper .
+
+  
+  op trace : Map{QualifiedCid,OuterTraceMap} Map{QualifiedCid,OuterTraceMap} -> K .
+  
+  op trace : Map{QualifiedCid,OuterTraceMap} Map{QualifiedCid,OuterTraceMap} Map{QualifiedCid,OuterTraceMap} -> K .   
+  
+  op stmt : TraceStmt -> K .
+
+
+  op resolveTempClasses : Set{QualifiedCid} -> K .
+
+  op iSandpitLOCal : QualifiedCid Set{QualifiedCid} -> Bool .
+  eq iSandpitLOCal(QC, (QC, QCS:Set{QualifiedCid})) = false .
+  eq iSandpitLOCal(QC, QCS:Set{QualifiedCid}) = true [owise] .
+
+
+  
+  rl [E-TraceStmt-InsertTraceLink-Global] :
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), TVAR |-> val(TO), VM)) E) 
+      | trace(GlobalM,LocalM) 
+      | resolveTempClasses( (QC, QCS:Set{QualifiedCid}) ) 
+      | stmt( insertTraceLink(SVAR,RN,TVARNAME,TVAR) )
+    )  
+  => 
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), TVAR |-> val(TO), VM)) E) 
+      | trace(
+        
+        put(linkSource(oid(QC,OID),TVARNAME), linkTarget(RN,TO), GlobalM),
+        LocalM
+      ) 
+      | resolveTempClasses( (QC, QCS:Set{QualifiedCid}) ) 
+      | stmt( tUnit )
+    ) .
+
+  crl [E-TraceStmt-InsertTraceLink-Local] :
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), TVAR |-> val(TO), VM)) E) 
+      | trace(GlobalM,LocalM) 
+      | resolveTempClasses( QCS:Set{QualifiedCid} ) 
+      | stmt( insertTraceLink(SVAR,RN,TVARNAME,TVAR) )
+    )  
+  => 
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), TVAR |-> val(TO), VM)) E) 
+      | trace(
+        GlobalM,
+        
+        put(linkSource(oid(QC,OID),TVARNAME), linkTarget(RN,TO), LocalM)
+      ) 
+      | resolveTempClasses( QCS:Set{QualifiedCid} ) 
+      | stmt( tUnit )
+    ) 
+  if 
+    iSandpitLOCal(QC, QCS:Set{QualifiedCid}) .
+
+
+
+  
+  rl [E-TraceStmt-InsertTraceLink-Global-InPlace] :
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), VM)) E) 
+      | trace(GlobalM,LocalM) 
+      | resolveTempClasses( (QC, QCS:Set{QualifiedCid}) ) 
+      | stmt( insertTraceLink(SVAR,RN,TVARNAME,SVAR) ) 
+    )  
+  => 
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), VM)) E) 
+      | trace(
+        
+        put(linkSource(oid(QC,OID),TVARNAME), linkTarget(RN,oid(QC,OID)), GlobalM),
+        LocalM
+      ) 
+      | resolveTempClasses( (QC, QCS:Set{QualifiedCid}) ) 
+      | stmt( tUnit )
+    ) .
+
+  crl [E-TraceStmt-InsertTraceLink-Local-InPlace] :
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), VM)) E) 
+      | trace(GlobalM,LocalM) 
+      | resolveTempClasses( QCS:Set{QualifiedCid} ) 
+      | stmt( insertTraceLink(SVAR,RN,TVARNAME,SVAR) )
+    )  
+  => 
+    traceK(
+      K 
+      | env(var((SVAR |-> val(oid(QC,OID)), VM)) E) 
+      | trace(
+        GlobalM,
+        
+        put(linkSource(oid(QC,OID),TVARNAME), linkTarget(RN,oid(QC,OID)), LocalM)
+      ) 
+      | resolveTempClasses( QCS:Set{QualifiedCid} ) 
+      | stmt( tUnit )
+    ) 
+  if 
+    iSandpitLOCal(QC, QCS:Set{QualifiedCid}) .
+
+  crl [E-TraceStmtNext] : 
+    traceK(K1 | stmt(tUnit ; TrS)) 
+  => 
+    traceK(K2 | stmt( tUnit )) 
+  if 
+    traceK(K1 | stmt( TrS )) 
+  => 
+    traceK(K2 | stmt( tUnit )) .
+  
+  crl [E-TraceStmtSeq] : 
+    traceK(K | stmt(TrS1:SingletonTraceStmt ; TrS)) 
+  => 
+    traceK(K2 | stmt( tUnit ))
+  if 
+    traceK(K | stmt(TrS1:SingletonTraceStmt))
+  => 
+    traceK(K1 | stmt( tUnit )) 
+  /\
+    traceK(K1 | stmt(TrS)) 
+  => 
+    traceK(K2 | stmt( tUnit )) .
+
+
+
+***( 
+  
+
+  op evalTrace : Env Map{QualifiedCid,OuterTraceMap} TraceStmt -> Map{QualifiedCid,OuterTraceMap} .
+  ceq evalTrace(E, OTLM, TrS) = 
+    OTLM'
+  if traceK(K | trace(OTLM') | stmt(tUnit)) := evalTrace(traceK( env(E) | trace(OTLM) | stmt(TrS))) .
+
+  op evalTrace : TraceKWrapper -> TraceKWrapper .
+  eq [E-TraceStmt-InsertTraceLink] :
+    evalTrace( traceK(K | env(var((SVAR |-> val(SO), TVAR |-> val(TO), VM)) E) | trace(OTLM) | stmt( insertTraceLink(SVAR,RN,TVARNAME,TVAR) )) ) 
+  = 
+    traceK(K | env(var((SVAR |-> val(SO), TVAR |-> val(TO), VM)) E) | trace(((linkSource(SO,TVARNAME) |-> linkTarget(RN,TO)), OTLM)) | stmt( tUnit )) .
+
+  ceq [E-TraceStmtNext] : 
+    evalTrace(traceK(K1 | stmt(tUnit ; TrS)))
+  =
+    traceK(K2 | stmt( tUnit )) 
+  if 
+    traceK(K2 | stmt( tUnit )) := evalTrace(traceK(K1 | stmt( TrS ))) 
+  .
+  
+  ceq [E-TraceStmtSeq] : 
+    evalTrace(traceK(K | stmt(TrS1:SingletonTraceStmt ; TrS)))
+  = 
+    traceK(K2 | stmt( tUnit ))
+  if 
+    traceK(K1 | stmt( tUnit )) := traceK(K | stmt(TrS1:SingletonTraceStmt))   
+  /\
+    traceK(K2 | stmt( tUnit )) := traceK(K1 | stmt(TrS)) . 
+
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+
+***( 
+  
+  crl [E-AtlTrafoDecl] : 
+    atlInit(
+      K1:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | atlStmt( module MTN:String ; TH:TrafoHeaderAtlStmt RDL:RuleDeclListAtlStmt HDL:EnvP )
+    ) 
+  =>
+    atlMatchingK(
+      K3:K 
+      | ruleStore( ARS:AtlRuleSet ) 
+      | match(noMatch) 
+      
+      
+      | matchPool( 
+          findWeightedMatches( ARS:AtlRuleSet, M:IObjectSet, NEW, LOC ) 
+      )
+      | mode(getAtlSemanticsMode(TH:TrafoHeaderAtlStmt))
+    )
+  if 
+    atlInit(
+      K1:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | atlStmt( RDL:RuleDeclListAtlStmt )
+    ) 
+    =>
+    atlInit(
+      K2:K 
+      | atlStmt( noAtlRuleDecl )
+    )  
+  /\
+    atlInit(
+      K2:K 
+      | atlStmt( HDL:EnvP )
+    ) 
+    =>
+    atlInit(
+      K3:K 
+      | atlStmt( empty )
+      | ruleStore( ARS:AtlRuleSet )
+    ) .
+)
+
+
+
+  crl [E-AtlTrafoDecl] : 
+    atlInit(
+      K1:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | atlStmt( module MTN:String ; TH:TrafoHeaderAtlStmt RDL:RuleDeclListAtlStmt HDL:EnvP )
+    ) 
+  =>
+    atlMatchingK(
+      K3:K 
+      | ruleStore( ARS:AtlRuleSet ) 
+      | match(noMatch) 
+      
+      
+      | matchPool( 
+        if (isInPlace?(runtimeOptions)) then 
+          nil 
+        else
+          findWeightedMatches( ARS:AtlRuleSet, M:IObjectSet, NEW, LOC ) 
+        fi 
+      )
+      | mode(getAtlSemanticsMode(TH:TrafoHeaderAtlStmt))
+    )
+  if 
+    atlInit(
+      K1:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | atlStmt( RDL:RuleDeclListAtlStmt )
+    ) 
+    =>
+    atlInit(
+      K2:K 
+      | atlStmt( noAtlRuleDecl )
+    )  
+  /\
+    atlInit(
+      K2:K 
+      | atlStmt( HDL:EnvP )
+    ) 
+    =>
+    atlInit(
+      K3:K 
+      | atlStmt( empty )
+      | ruleStore( ARS:AtlRuleSet )
+    ) .
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+  
+  rl [E-AtlRuleDecl] : 
+    atlInit(
+      K:K 
+      | ruleStore(ARS:AtlRuleSet) 
+      | atlStmt((rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr }) RLS:RuleDeclListAtlStmt)
+    ) 
+  =>
+    atlInit(
+      K:K 
+      | ruleStore(ARS:AtlRuleSet (
+        atlRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr, 
+          MN:VarExpr, 
+          ME:Expr, 
+          getDomainStmtSet( 
+            RN:ProcName, 
+            compileOutVar( 
+              V:VarExpr : C:QualifiedCid in MN:VarExpr ( ), 
+              U:UsingAtlRuleExpr?,
+              OVL:OutVarDeclListAtlRuleExpr 
+            ), 
+            V:VarExpr,
+            U:UsingAtlRuleExpr?
+          )
+        )
+      )) 
+      | atlStmt(RLS:RuleDeclListAtlStmt) 
+    ) .
+
+
+***(  
+  crl [E-AtlRuleDecl-Refining] : 
+    atlInit(
+      K:K 
+      | ruleStore(ARS:AtlRuleSet) 
+      | atlStmt((rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr }) RLS:RuleDeclListAtlStmt)
+      | mode(refining)
+    ) 
+  =>
+    atlInit(
+      K:K 
+      | ruleStore(ARS:AtlRuleSet (
+        atlRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr, 
+          MN:VarExpr, 
+          ME:Expr, 
+          getDomainStmtSet( 
+            RN:ProcName, 
+            emfGraph(
+              (
+                node(C:QualifiedCid,getDomainName(OVL:OutVarDeclListAtlRuleExpr),var("ATL-REFINING-MODE")),
+                NS
+              ),
+              ES
+            ), 
+            V:VarExpr,
+            U:UsingAtlRuleExpr?
+          )
+        )
+      )) 
+      | atlStmt(RLS:RuleDeclListAtlStmt) 
+      | mode(refining)
+    ) 
+  if 
+    emfGraph(NS,ES) := diff(
+      compileOutVar( OVL:OutVarDeclListAtlRuleExpr ),
+      compileOutVar( V:VarExpr : C:QualifiedCid in MN:VarExpr ( ) )
+    ) .
+)
+
+
+
+
+  rl [E-AtlLazyRuleDecl] : 
+    atlInit(K:K | ruleStore(ARS:AtlRuleSet) 
+    | atlStmt((lazy rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr }) RLS:RuleDeclListAtlStmt)) 
+  =>
+    atlInit(
+      K:K | ruleStore(ARS:AtlRuleSet (
+        atlLazyRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr, 
+          MN:VarExpr, 
+          ME:Expr, 
+          getDomainStmtSet( 
+            RN:ProcName, 
+            compileOutVar( 
+              V:VarExpr : C:QualifiedCid in MN:VarExpr ( ), 
+              U:UsingAtlRuleExpr?,
+              OVL:OutVarDeclListAtlRuleExpr 
+            ), 
+            V:VarExpr,
+            U:UsingAtlRuleExpr?
+          )
+        )
+      )) | atlStmt(RLS:RuleDeclListAtlStmt) 
+  ) .
+
+  rl [E-AtUniquelLazyRuleDecl] : 
+    atlInit(K:K | ruleStore(ARS:AtlRuleSet) 
+    | atlStmt((unique lazy rule RN:ProcName {from V:VarExpr : C:QualifiedCid in MN:VarExpr ( ME:Expr ) U:UsingAtlRuleExpr? to OVL:OutVarDeclListAtlRuleExpr }) RLS:RuleDeclListAtlStmt)) 
+  =>
+    atlInit(
+      K:K | ruleStore(ARS:AtlRuleSet (
+        atlUniqueLazyRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr, 
+          MN:VarExpr, 
+          ME:Expr, 
+          getDomainStmtSet( 
+            RN:ProcName, 
+            compileOutVar( 
+              V:VarExpr : C:QualifiedCid in MN:VarExpr ( ), 
+              U:UsingAtlRuleExpr?,
+              OVL:OutVarDeclListAtlRuleExpr 
+            ), 
+            V:VarExpr,
+            U:UsingAtlRuleExpr?
+          )
+        )
+      )) | atlStmt(RLS:RuleDeclListAtlStmt) 
+  ) .
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  op getDomainStmtSet : ProcName EmfGraph VarExpr UsingAtlRuleExpr? -> DomainStmtSet .
+  eq getDomainStmtSet( RN:ProcName, EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr? ) = 
+    getDomainStmtSet(RN:ProcName, getDomainNames(RN:ProcName, EG:EmfGraph,noDomainStmt), EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr?, noDomainStmt) .
+    
+
+    
+  
+  
+  
+  
+  
+  
+  op getDomainNames : ProcName EmfGraph DomainStmtSet -> DomainStmtSet .
+  eq getDomainNames( RN:ProcName, emfGraph( empty, ES:Set{EmfEdge} ), DSS:DomainStmtSet ) = DSS:DomainStmtSet .
+  
+  eq getDomainNames( RN:ProcName, 
+    emfGraph( (node(C:QualifiedCid,MN:VarExpr,O:VarExpr), NS:Set{EmfNode}), ES:Set{EmfEdge} ), 
+    domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+  ) =
+    getDomainNames( RN:ProcName, 
+      emfGraph(NS:Set{EmfNode}, ES:Set{EmfEdge}), 
+      domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+    ) .
+  eq getDomainNames( RN:ProcName, 
+    emfGraph( (nodeDrop(MN:VarExpr,O:VarExpr), NS:Set{EmfNode}), ES:Set{EmfEdge} ), 
+    domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+  ) =
+    getDomainNames( RN:ProcName, 
+      emfGraph(NS:Set{EmfNode}, ES:Set{EmfEdge}), 
+      domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+    ) .    
+  eq getDomainNames( RN:ProcName, 
+    emfGraph( (nodeDrop(MN:VarExpr, O:Expr, P:PropName, O:VarExpr), NS:Set{EmfNode}), ES:Set{EmfEdge} ), 
+    domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+  ) =
+    getDomainNames( RN:ProcName, 
+      emfGraph(NS:Set{EmfNode}, ES:Set{EmfEdge}), 
+      domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+    ) .    
+  eq getDomainNames( RN:ProcName, 
+    emfGraph( (nodeUpdate(QC, MN:VarExpr,O:VarExpr), NS:Set{EmfNode}), ES:Set{EmfEdge} ), 
+    domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+  ) =
+    getDomainNames( RN:ProcName, 
+      emfGraph(NS:Set{EmfNode}, ES:Set{EmfEdge}), 
+      domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt) DSS:DomainStmtSet 
+    ) .    
+  
+  eq getDomainNames( RN:ProcName, emfGraph( (N:EmfNode, NS:Set{EmfNode}), ES:Set{EmfEdge} ), DSS:DomainStmtSet ) =
+    getDomainNames( 
+      RN:ProcName, 
+      emfGraph(NS:Set{EmfNode}, ES:Set{EmfEdge}), 
+      DSS:DomainStmtSet domainStmt(getDomainName(N:EmfNode),(),(),tUnit) 
+    ) [owise] .
+  
+  op getDomainName : EmfNode -> VarExpr .
+  eq getDomainName(node(C:QualifiedCid,MN:VarExpr,O:VarExpr)) = MN:VarExpr .
+  eq getDomainName(nodeDrop(MN:VarExpr, V:VarExpr)) = MN:VarExpr .
+  eq getDomainName(nodeDrop(MN:VarExpr, O:Expr, P:PropName, V:VarExpr)) = MN:VarExpr .
+  eq getDomainName(nodeUpdate(QC, MN:VarExpr, V:VarExpr)) = MN:VarExpr .
+  
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  op getDomainStmtSet : ProcName DomainStmtSet EmfGraph VarExpr UsingAtlRuleExpr? DomainStmtSet  -> DomainStmtSet .
+  eq getDomainStmtSet(RN:ProcName, noDomainStmt, EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr?, DSS2:DomainStmtSet) = DSS2:DomainStmtSet .
+
+
+  eq getDomainStmtSet(RN:ProcName, D:DomainStmt DSS:DomainStmtSet, EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr?, DSS2:DomainStmtSet) =
+     getDomainStmtSet(
+      RN:ProcName,
+      DSS:DomainStmtSet, 
+      EG:EmfGraph, 
+      V:VarExpr, 
+      U:UsingAtlRuleExpr?,
+      DSS2:DomainStmtSet compileDomainStmt( RN:ProcName, D:DomainStmt, EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr? )
+     ) .
+         
+  
+ 
+  
+  
+  
+  
+  
+  
+  
+  op compileDomainStmt : ProcName DomainStmt EmfGraph VarExpr UsingAtlRuleExpr?  -> DomainStmt .
+***(  
+  
+  
+  eq compileDomainStmt( 
+    RN:ProcName, 
+    domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt), 
+    emfGraph(
+      (node(C:QualifiedCid,MN:VarExpr,var("ATL-REFINING-MODE")), NS),
+      ES
+    ), 
+    V:VarExpr,
+    U:UsingAtlRuleExpr? 
+  ) =
+    domainStmt(
+      MN:VarExpr,    
+      compileUsingExpr(
+        U:UsingAtlRuleExpr?,
+        getFmaObjectTree( emfGraph( NS, ES ) )
+      ), 
+      
+      (),
+      if (isInPlace?(runtimeOptions)) then 
+        tUnit  
+      else 
+        getTraceStmt( RN:ProcName, MN:VarExpr, V:VarExpr, emfGraph( NS, ES )  )  
+      fi
+    ) 
+  .  
+)  
+  eq compileDomainStmt( RN:ProcName, domainStmt(MN:VarExpr,TREE:Stmt,GRAPH:Stmt,TRACE:TraceStmt), EG:EmfGraph, V:VarExpr, U:UsingAtlRuleExpr? ) =
+    domainStmt(
+      MN:VarExpr,    
+      compileUsingExpr(
+        U:UsingAtlRuleExpr?,
+        getFmaObjectTree( EG:EmfGraph )
+      ), 
+      
+      (),
+      if (isInPlace?(runtimeOptions)) then 
+        tUnit  
+      else 
+        getTraceStmt( RN:ProcName, MN:VarExpr, V:VarExpr, EG:EmfGraph )  
+      fi
+    ) [owise] .
+     
+     
+
+
+
+
+
+  
+  
+  
+  op compileUsingExpr : UsingAtlRuleExpr? Stmt -> Stmt .
+  eq compileUsingExpr(noUsing, STMT:Stmt) = STMT:Stmt .
+  eq compileUsingExpr(using { UL:UsingVarDeclListExpr }, STMT:Stmt) = 
+    compileUsingExpr(UL:UsingVarDeclListExpr, STMT:Stmt) .
+
+  op compileUsingExpr : UsingVarDeclListExpr Stmt -> Stmt .
+  eq compileUsingExpr( U:UsingVarDeclExpr, STMT:Stmt ) = 
+    compileUsingExprAtom(U:UsingVarDeclExpr, STMT:Stmt) .
+  eq compileUsingExpr( U:UsingVarDeclExpr UL:UsingVarDeclListExpr, STMT:Stmt ) = 
+    compileUsingExpr( 
+      UL:UsingVarDeclListExpr, 
+      compileUsingExpr(U:UsingVarDeclExpr, STMT:Stmt) 
+    ) . 
+
+  op compileUsingExprAtom : UsingVarDeclExpr Stmt -> Stmt .
+  eq compileUsingExprAtom( (V:VarExpr : T:FmaType = EXP:Expr ;), STMT:Stmt ) = 
+    let V:VarExpr = EXP:Expr in (STMT:Stmt) .
+
+
+
+
+
+     
+     
+
+  
+  
+  
+
+
+  
+  
+  op compileOutVar : OutVarDeclListAtlRuleExpr UsingAtlRuleExpr? OutVarDeclListAtlRuleExpr -> EmfGraph .
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, U:UsingAtlRuleExpr?, OVL:OutVarDeclListAtlRuleExpr ) = 
+    extractCmtPoset(
+      compileUsingExpr(
+        U:UsingAtlRuleExpr?,
+        compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, U:UsingAtlRuleExpr?, OVL:OutVarDeclListAtlRuleExpr, emfGraph(empty,empty) ) 
+      )
+    ) .
+
+ 
+  op compileOutVar : OutVarDeclListAtlRuleExpr UsingAtlRuleExpr? OutVarDeclListAtlRuleExpr EmfGraph -> EmfGraph .
+  eq compileOutVar( 
+    S2:VarExpr : QC in MN2:VarExpr( noBinding ),
+    U:UsingAtlRuleExpr?, 
+    (S:VarExpr : (MTN:ModelTypeName ! C:Cid) in MN:VarExpr ( BL:BindingListAtlRuleExpr )),
+    emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) 
+  ) =
+    compileBindingList( MTN:ModelTypeName ! C:Cid, S:VarExpr, BL:BindingListAtlRuleExpr, 
+      emfGraph( 
+        (
+          if (S:VarExpr == S2:VarExpr) then
+            
+            nodeUpdate(MTN:ModelTypeName ! C:Cid, MN:VarExpr, S:VarExpr)
+          else
+            if (isInUsing(S:VarExpr, U:UsingAtlRuleExpr?)) then
+              
+              nodeUpdate(MTN:ModelTypeName ! C:Cid, MN:VarExpr, S:VarExpr)
+            else
+              node(MTN:ModelTypeName ! C:Cid, MN:VarExpr, S:VarExpr)
+            fi
+          fi
+          , 
+          NS:Set{EmfNode}), 
+        ES:Set{EmfEdge} 
+      )
+  ) .
+  
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, U:UsingAtlRuleExpr?, drop(MN:VarExpr, S:VarExpr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) =
+    emfGraph( 
+      (nodeDrop(MN:VarExpr, S:VarExpr), NS:Set{EmfNode}), 
+      ES:Set{EmfEdge} 
+    ) .
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, U:UsingAtlRuleExpr?, drop(MN:VarExpr, V:Expr, P:PropName, S:VarExpr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) =
+    emfGraph( 
+      (nodeDrop(MN:VarExpr, V:Expr, P:PropName, S:VarExpr), NS:Set{EmfNode}), 
+      ES:Set{EmfEdge} 
+    ) .
+
+  eq compileOutVar( 
+    SOVL:OutVarDeclListAtlRuleExpr,
+    U:UsingAtlRuleExpr?, 
+    (OV:OutVarDeclAtlRuleExpr , OVL:OutVarDeclListAtlRuleExpr),
+    emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) 
+  ) =
+    compileOutVar(
+      SOVL:OutVarDeclListAtlRuleExpr,
+      U:UsingAtlRuleExpr?, 
+      OVL:OutVarDeclListAtlRuleExpr,
+      compileOutVar(
+        SOVL:OutVarDeclListAtlRuleExpr,
+        U:UsingAtlRuleExpr?, 
+        OV:OutVarDeclAtlRuleExpr,
+        emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} )
+      )
+    ) .
+
+
+  
+  op compileUsingExpr : UsingAtlRuleExpr? EmfGraph -> EmfGraph .
+  eq compileUsingExpr(noUsing, GRAPH:EmfGraph) = GRAPH:EmfGraph .
+  eq compileUsingExpr(using { UL:UsingVarDeclListExpr }, GRAPH:EmfGraph) = 
+    compileUsingExpr(UL:UsingVarDeclListExpr, GRAPH:EmfGraph) .
+
+  op compileUsingExpr : UsingVarDeclListExpr EmfGraph -> EmfGraph .
+  eq compileUsingExpr( U:UsingVarDeclExpr, GRAPH:EmfGraph ) = 
+    compileUsingExprAtom(U:UsingVarDeclExpr, GRAPH:EmfGraph) .
+  eq compileUsingExpr( U:UsingVarDeclExpr UL:UsingVarDeclListExpr, GRAPH:EmfGraph ) = 
+    compileUsingExpr( 
+      UL:UsingVarDeclListExpr, 
+      compileUsingExpr(U:UsingVarDeclExpr, GRAPH:EmfGraph) 
+    ) . 
+
+  op compileUsingExprAtom : UsingVarDeclExpr EmfGraph -> EmfGraph .
+  
+  eq compileUsingExprAtom( (V:VarExpr : (MTN:ModelTypeName ! C:Cid) = EXP:Expr ;), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) = 
+    emfGraph( 
+      
+      NS:Set{EmfNode},
+      ES:Set{EmfEdge} 
+    ) .
+  eq compileUsingExprAtom( (V:VarExpr : (T:FmaType) = EXP:Expr ;), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) = 
+    emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) [owise] .
+
+
+
+  op isInUsing : VarExpr UsingAtlRuleExpr? -> Bool .
+  eq isInUsing(V:VarExpr, noUsing) = false .
+  eq isInUsing(V:VarExpr, using { UL:UsingVarDeclListExpr }) = 
+    isInUsing(V:VarExpr, UL:UsingVarDeclListExpr) .
+  
+  op isInUsing : VarExpr UsingVarDeclListExpr -> Bool .
+  eq isInUsing(V1:VarExpr, (V2:VarExpr : T:FmaType = EXP:Expr ;) ) = 
+    if (V1:VarExpr == V2:VarExpr) then
+      true
+    else
+      false
+    fi .
+  eq isInUsing(V1:VarExpr, (V2:VarExpr : T:FmaType = EXP:Expr ;) UL:UsingVarDeclListExpr ) = 
+    if (V1:VarExpr == V2:VarExpr) then
+      true
+    else
+      isInUsing(V1:VarExpr, UL:UsingVarDeclListExpr) 
+    fi .
+    
+    
+
+
+
+
+
+
+  
+  
+  
+
+
+  
+  
+  op compileOutVar : OutVarDeclListAtlRuleExpr OutVarDeclListAtlRuleExpr -> EmfGraph .
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, OVL:OutVarDeclListAtlRuleExpr ) = 
+    extractCmtPoset(
+      compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, OVL:OutVarDeclListAtlRuleExpr, emfGraph(empty,empty) ) 
+    ) .
+  
+  
+  op compileOutVar : OutVarDeclListAtlRuleExpr OutVarDeclListAtlRuleExpr EmfGraph -> EmfGraph .
+  eq compileOutVar( 
+    S2:VarExpr : QC in MN2:VarExpr( noBinding ),
+    (S:VarExpr : (MTN:ModelTypeName ! C:Cid) in MN:VarExpr ( BL:BindingListAtlRuleExpr )),
+    emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) 
+  ) =
+    compileBindingList( MTN:ModelTypeName ! C:Cid, S:VarExpr, BL:BindingListAtlRuleExpr, 
+    emfGraph( 
+      (
+        if (S2:VarExpr == S:VarExpr) then
+          
+          nodeUpdate(MTN:ModelTypeName ! C:Cid, MN:VarExpr, S:VarExpr)
+        else
+          node(MTN:ModelTypeName ! C:Cid, MN:VarExpr, S:VarExpr)
+        fi
+        , 
+        NS:Set{EmfNode}), 
+      ES:Set{EmfEdge} 
+    )
+  ) .
+  
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, drop(MN:VarExpr, S:VarExpr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) =
+    emfGraph( 
+      (nodeDrop(MN:VarExpr, S:VarExpr), NS:Set{EmfNode}), 
+      ES:Set{EmfEdge} 
+    ) .
+  eq compileOutVar( SOVL:OutVarDeclListAtlRuleExpr, drop(MN:VarExpr, V:Expr, P:PropName, S:VarExpr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) =
+    emfGraph( 
+      (nodeDrop(MN:VarExpr, V:Expr, P:PropName, S:VarExpr), NS:Set{EmfNode}), 
+      ES:Set{EmfEdge} 
+    ) .
+
+  eq compileOutVar( 
+    SOVL:OutVarDeclListAtlRuleExpr,
+    (OV:OutVarDeclAtlRuleExpr , OVL:OutVarDeclListAtlRuleExpr),
+    emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) 
+  ) =
+    compileOutVar(
+      SOVL:OutVarDeclListAtlRuleExpr,
+      OVL:OutVarDeclListAtlRuleExpr,
+      compileOutVar(
+        SOVL:OutVarDeclListAtlRuleExpr,
+        OV:OutVarDeclAtlRuleExpr,
+        emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} )
+      )
+    ) .
+  
+    
+    
+  
+  
+  
+  op compileBindingList : QualifiedCid VarExpr BindingAtlRuleExpr EmfGraph -> EmfGraph .
+  
+  eq compileBindingList( C:QualifiedCid, S:VarExpr, noBinding, EG:EmfGraph ) = EG:EmfGraph .  
+  
+  ceq compileBindingList( C:QualifiedCid, S:VarExpr, ((P:PropName <- E:Expr), BL:BindingListAtlRuleExpr), EG:EmfGraph ) = 
+  compileBindingList( C:QualifiedCid, S:VarExpr, BL:BindingListAtlRuleExpr, 
+    compileBindingList( C:QualifiedCid, S:VarExpr, P:PropName <- E:Expr, EG:EmfGraph )
+  ) 
+  if BL:BindingListAtlRuleExpr =/= noBinding .
+  
+  
+  ceq compileBindingList( C:QualifiedCid, S:VarExpr, (P:PropName <- E:Expr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) = 
+  emfGraph( NS:Set{EmfNode}, (edge(S:VarExpr, P:PropName, compileToFma(E:Expr)), ES:Set{EmfEdge}) )
+  if 
+    not(isCont(P:PropName, cl(C:QualifiedCid))) . 
+  
+  
+  
+  
+  op compileToFma : Expr -> Expr .
+  eq compileToFma( E:Expr ) = E:Expr .
+  
+  
+  
+  
+  ceq compileBindingList( C:QualifiedCid, S:VarExpr, (P:PropName <- T:VarExpr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) = 
+    emfGraph( NS:Set{EmfNode}, (cmt(T:VarExpr, P2:PropName, S:VarExpr), ES:Set{EmfEdge}) )
+  if 
+    not(isCont(P:PropName, cl(C:QualifiedCid))) 
+  /\ 
+    
+    P2:PropName := op(C:QualifiedCid,P) 
+  /\
+    opIsCmt(C:QualifiedCid,P) == true .
+  
+  
+  ceq compileBindingList( C:QualifiedCid, S:VarExpr, (P:PropName <-  E:Expr), emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} ) ) = 
+    emfGraph( NS:Set{EmfNode}, (cmt(S:VarExpr, P:PropName, E:Expr), ES:Set{EmfEdge}) )
+  if isCont(P:PropName, cl(C:QualifiedCid)) .
+
+  
+ 
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  rl [E-AtlHelperContextDecl] : 
+    atlInit(
+      K:K 
+      | procEnv( EnvP:EnvP ) 
+      | atlStmt( AHD:AtlContextualHelperDecl EnvP2:EnvP )
+    ) 
+  =>
+    atlInit(
+      K:K 
+      | procEnv( EnvP:EnvP AHD:AtlContextualHelperDecl )
+      | atlStmt( EnvP2:EnvP )
+  ) .
+
+
+  
+  
+  rl [E-AtlHelperContextDecl] : 
+    atlInit(
+      K:K 
+      | procEnv( EnvP:EnvP ) 
+      | atlStmt( AHD:AtlStaticHelperDecl EnvP2:EnvP )
+    ) 
+  =>
+    atlInit(
+      K:K 
+      | procEnv( EnvP:EnvP AHD:AtlStaticHelperDecl )
+      | atlStmt( EnvP2:EnvP )
+  ) .
+
+  
+  
+
+  op atlAttribute : ProcName ValueExpr -> AtlAttributeDecl .
+
+  
+  crl [E-AtlAttributeNoContextDecl] : 
+    atlInit(
+      K:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | procEnv( EP:EnvP ) 
+      | atlStmt( (helper def : PN:ProcName : T:Scalar = EXPR:Expr ;)  EnvP2:EnvP )
+    )
+  =>
+    atlInit(
+      K:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | procEnv( EP:EnvP atlAttribute(PN:ProcName,VAL:ValueExpr) )
+      | atlStmt( EnvP2:EnvP )
+  ) if
+    exprK(
+      exprModel(MODEL:VarExpr, M:IObjectSet, NEW, LOC)  
+      | exprEnv( var(empty) )
+      | procEnv( EP:EnvP)
+      | expr(EXPR:Expr) 
+      | exprTrace(empty)
+    )
+  =>
+    exprK(output(VAL:ValueExpr)) .
+
+
+
+
+
+
+
+
+
+
+  vars ML1 ML2 : List{WeightedMatch<=} .
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  crl [E-AtlScheduler-Normal] :
+    atlMatchingK( 
+      K:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
+      | match( noMatch )
+      | matchPool( 
+        ML1
+        wMatch( match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})), W:Rat )
+        ML2
+      )
+      | trace(GlobalM1, LocalM1, HM1)
+      | mode(normal)
+    ) 
+  =>
+    atlMatchingK(
+      K':K 
+      | queryDomain(
+        MODEL:VarExpr, 
+        M:IObjectSet, 
+        NEW, 
+        LOC, 
+        ((0 |-> Obj:Object) (1 |-> sentinel)),  
+        SandpitLOC2                             
+      )  
+      
+      | domain(
+        OUT:VarExpr, 
+        OS3:IObjectSet, 
+        OUTNEW2, 
+        OUTLOC3,
+        OUTSandpitOS3,       
+        OUTSandpitLOC3
+      )  
+      | match( noMatch ) 
+      | matchPool( 
+        disableMatch(ML1, O:Oid) 
+        disableMatch(ML2, O:Oid) 
+      )
+      | trace(GlobalM4, LocalM4, HM4)
+      | mode(normal)
+    )   
+  if
+***(
+      
+      L:Location := LOC [ O:Oid ]
+)
+***(
+    
+    L2:Location := get(O:Oid, LOC)
+  /\
+    L:Location := loc(rootOid(L2:Location))
+  /\
+    < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := unplug(M:IObjectSet, L:Location)  
+)    
+
+
+    < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := 
+      if (get(O:Oid, SandpitLOC) == (undefined).Location) then
+        unplug(M:IObjectSet, loc(rootOid(get(O:Oid, LOC))))
+      else
+        unplug(SandpitOS, loc(rootOid(get(O:Oid, SandpitLOC))))
+      fi
+  /\
+    SandpitLOC2 := 
+      if (get(O:Oid, SandpitLOC) == (undefined).Location) then
+        buildLocStore( (0 |-> Obj:Object) (1 |-> sentinel) )
+      else 
+        SandpitLOC
+      fi
+  /\
+    trace(GlobalM2, LocalM2) :=
+      if (get(O:Oid, SandpitLOC) == (undefined).Location) then 
+        trace(GlobalM1, empty) 
+      else 
+        trace(GlobalM1, LocalM1)
+      fi
+  /\
+    atlK(
+      K:K 
+
+        | queryDomain(
+          MODEL:VarExpr, 
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          NEW, 
+          
+          
+          
+          
+          SandpitLOC2,
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          SandpitLOC2
+        )  
+        
+        
+        
+        | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW, empty, OUTSandpitOS, OUTSandpitLOC)  
+        | match( match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})) ) 
+        | trace( GlobalM2, LocalM2 )
+      ) 
+    => 
+    atlK(
+      K':K 
+      | queryDomain(MODEL:VarExpr, M2:IObjectSet, NEW, SandpitLOC2, SandpitOS2, SandpitLOC2)  
+      
+      | domain(OUT:VarExpr, OUTM2:IObjectSet, OUTNEW2, OUTLOC2, OUTSandpitOS2, OUTSandpitLOC2)  
+      | match( noMatch )
+      | trace( GlobalM3, LocalM3 )
+    ) 
+  /\
+    < OS3:IObjectSet ; OUTLOC3 ; OUTSandpitOS3 ; OUTSandpitLOC3 > := 
+      classifyRootObject(< OUTOS ; OUTLOC ; OUTSandpitOS2 ; OUTSandpitLOC2 >) 
+  /\
+    trace(GlobalM4, LocalM4, HM4) := 
+      if (get(O:Oid, SandpitLOC) == (undefined).Location) then 
+        trace(GlobalM3, LocalM3, merge(HM1, LocalM1))
+      else 
+        trace(GlobalM3, LocalM3, HM1)
+      fi .
+
+
+  
+  
+  
+  
+  
+  
+  crl [E-AtlScheduler-Refining-OutPlace] :
+    atlMatchingK( 
+      K:K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
+      | match( noMatch )
+      | matchPool(
+        ML1
+        wMatch( match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})), W:Rat )
+        ML2
+      )
+      | trace(GlobalM1, LocalM1, HM1)
+      | mode(refining)
+    ) 
+  =>
+    atlMatchingK(
+      K':K 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)   
+      
+      | domain(
+        OUT:VarExpr, 
+        OUTSandpitOS2,  
+        OUTNEW2,        
+        OUTSandpitLOC2, 
+        (0 |-> sentinel),   
+        empty               
+      ) 
+      | match( noMatch ) 
+      | matchPool( 
+        disableMatch(ML1, O:Oid) 
+        disableMatch(ML2, O:Oid) 
+      )
+      | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
+      | mode(refining)
+    )   
+  if
+    
+    L2:Location := get(O:Oid, OUTLOC)
+  /\
+    L:Location := loc(rootOid(L2:Location))
+  /\
+    < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := unplug(OUTOS, L:Location)  
+  /\
+    LOC2 := buildLocStore( (0 |-> Obj:Object) (1 |-> sentinel) )
+  /\
+    atlK(
+      K:K 
+      | queryDomain(
+        MODEL:VarExpr, 
+        ((0 |-> Obj:Object) (1 |-> sentinel)), 
+        NEW, 
+        
+        
+        
+        
+        LOC2,
+        ((0 |-> Obj:Object) (1 |-> sentinel)), 
+        LOC2
+      )  
+      
+      | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW, empty, OUTOS, OUTLOC)  
+      | match( match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})) ) 
+      | trace( GlobalM1, LocalM1 )
+    ) 
+  => 
+    atlK(
+      K':K 
+      | queryDomain(MODEL:VarExpr, M2:IObjectSet, NEW, LOC2, SandpitOS2, LOC2)  
+      
+      | domain(OUT:VarExpr, OUTM2:IObjectSet, OUTNEW2, OUTLOC2, OUTSandpitOS2, OUTSandpitLOC2)  
+      | match( noMatch )
+      | trace( GlobalM3, LocalM3 )
+    ) 
+  .
+
+
+  ***(
+
+
+ 
+  crl [E-AtlScheduler-Refining-InPlace-OnlineMatching] :
+  atlMatchingK( 
+      K:K 
+      | ruleStore(  
+        atlRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr,
+          MODEL2:VarExpr,  
+          (DSL#Bool) FC:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
+      | trace(GlobalM1, LocalM1, HM1)
+      | mode(in-place)
+      
+      | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | match( MP1:MatchPool ) 
+      
+      | matchPool( MP2:List{WeightedMatch<=} )
+    ) 
+  =>
+    atlMatchingK(
+      K':K      
+      | domain(
+        OUT:VarExpr, 
+        OUTSandpitOS2,  
+        OUTNEW2,        
+        OUTSandpitLOC2, 
+        (0 |-> sentinel),   
+        empty               
+      )  
+      | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
+      | mode(in-place)
+      
+      | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | match( MP1:MatchPool ) 
+      
+      | matchPool( MP2:List{WeightedMatch<=} )
+    )   
+  if
+    
+    O:Oid := findEnablingMatch( C:QualifiedCid, V:VarExpr, FC:OclExp, OUTOS, (GlobalM1, LocalM1, HM1), var(empty) new(OUTNEW) loc(OUTLOC) )  
+  /\
+    
+    ref((N2:Nat |-> sentinel)(N1:Nat |-> O:Oid) IS1:IOidSet) := RES:ValueExpr 
+  /\ 
+    
+    L2:Location := get(O:Oid, OUTLOC)
+  /\
+    L:Location := loc(rootOid(L2:Location))
+  /\
+    < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := unplug(OUTOS, L:Location)  
+  /\
+    OUTLOC2 := buildLocStore( (0 |-> Obj:Object) (1 |-> sentinel) )
+  /\
+    atlK(
+      K:K 
+        | ruleStore(  
+          atlRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr,  
+            (DSL#Bool) FC:OclExp, 
+            DSS:DomainStmtSet
+          )  
+          ARS:AtlRuleSet    
+        )
+        | queryDomain(
+          OUT:VarExpr, 
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          OUTNEW, 
+          
+          
+          
+          
+          OUTLOC2,
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          OUTLOC2
+        )  
+        | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW, empty, OUTOS, OUTLOC)  
+        | match( match(RN:ProcName, (V:VarExpr |-> val(O:Oid))) ) 
+        | trace( GlobalM1, LocalM1 )
+      ) 
+    => 
+    atlK(
+      K':K 
+      | queryDomain(OUT:VarExpr, OUTOS2, OUTNEW, OUTLOC2, OUTOS2, OUTLOC2)  
+      | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW2, empty, OUTSandpitOS2, OUTSandpitLOC2)  
+      
+      | match( noMatch )
+      | trace( GlobalM3, LocalM3 )
+    )     
+  .
+
+
+  )
+
+
+
+
+
+  
+  
+  
+  crl [E-AtlSchedule-InPlace] :
+    atlMatchingK( 
+      K:K 
+      | ruleStore(  
+        atlRule(
+          RN:ProcName, 
+          C:QualifiedCid, 
+          V:VarExpr,
+          MODEL2:VarExpr,  
+          (DSL#Bool) FC:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
+      | trace(GlobalM1, LocalM1, HM1)
+      | mode(in-place)
+      
+      | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | match( MP1:MatchPool ) 
+      
+      | matchPool( MP2:List{WeightedMatch<=} )
+    ) 
+  =>
+    atlMatchingK(
+      K':K      
+      | domain(
+        OUT:VarExpr, 
+        OUTSandpitOS2,  
+        OUTNEW2,        
+        OUTSandpitLOC2, 
+        (0 |-> sentinel),   
+        empty               
+      )  
+      | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
+      | mode(in-place)
+      
+      | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
+      
+      | match( MP1:MatchPool ) 
+      
+      | matchPool( MP2:List{WeightedMatch<=} )
+    )   
+  if
+    
+    
+    
+    RES:ValueExpr :=
+      oclValToFmaVal(
+        eval(
+          C:QualifiedCid . allInstances() -> select( fmaVarToOclVar(V:VarExpr) | FC:OclExp ) -> asSequence() , 
+          getModclConfiguration(OUTOS, var(empty) new(OUTNEW) loc(OUTLOC))
+        )
+      )
+  /\
+    
+    ref((N2:Nat |-> sentinel)(N1:Nat |-> O:Oid) IS1:IOidSet) := RES:ValueExpr 
+  /\ 
+    
+    L2:Location := get(O:Oid, OUTLOC)
+  /\
+    L:Location := loc(rootOid(L2:Location))
+  /\
+    < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := unplug(OUTOS, L:Location)  
+  /\
+    OUTLOC2 := buildLocStore( (0 |-> Obj:Object) (1 |-> sentinel) )
+  /\
+    atlK(
+      K:K 
+        | ruleStore(  
+          atlRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr,  
+            (DSL#Bool) FC:OclExp, 
+            DSS:DomainStmtSet
+          )  
+          ARS:AtlRuleSet    
+        )
+        | queryDomain(
+          OUT:VarExpr, 
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          OUTNEW, 
+          
+          
+          
+          
+          OUTLOC2,
+          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          OUTLOC2
+        )  
+        | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW, empty, OUTOS, OUTLOC)  
+        | match( match(RN:ProcName, (V:VarExpr |-> val(O:Oid))) ) 
+        | trace( GlobalM1, LocalM1 )
+      ) 
+    => 
+    atlK(
+      K':K 
+      | queryDomain(OUT:VarExpr, OUTOS2, OUTNEW, OUTLOC2, OUTOS2, OUTLOC2)  
+      | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW2, empty, OUTSandpitOS2, OUTSandpitLOC2)  
+      
+      | match( noMatch )
+      | trace( GlobalM3, LocalM3 )
+    )     
+  .
+
+
+  
+  
+  
+  op classifyRootObject : SandpitSplit -> SandpitSplit .
+
+  ceq classifyRootObject( < OS:IObjectSet ; LOC  ; SandpitOS ; SandpitLOC > ) =
+    classifyRootObject(< 
+      insert(OS:IObjectSet, Obj:Object) ; 
+      merge(LOC, buildLocStore( (I:Int |-> Obj:Object) 1 |-> sentinel )) ; 
+      OUTSandpitOS2 ;
+      buildLocStore(OUTSandpitOS2)
+    >) 
+  if 
+    L:Location := selectRootObjectLocation(SandpitLOC) 
+    /\
+    < OUTSandpitOS2 ; (I:Int |-> Obj:Object) > := unplug(SandpitOS, L:Location)  
+  . 
+
+  eq classifyRootObject( SS:SandpitSplit ) = SS:SandpitSplit [owise] .
+
+
+
+
+
+  
+  
+  
+  
+  crl [E-AtlRuleSideEffects] :
+    atlK( 
+      K:K 
+      | procEnv(EP:EnvP) 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+
+      | ruleStore(  
+      atlRule(
+        RN:ProcName, 
+        C:QualifiedCid, 
+        V:VarExpr,
+        MODEL2:VarExpr, 
+        (DSL#Bool) OCLE:OclExp, 
+      DSS:DomainStmtSet
+      )  
+      ARS:AtlRuleSet    
+      )
+      | match( match(RN:ProcName, SUBS:Map{VarExpr,ValueExpr}) )
+  ) 
+  =>
+    atlK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | match( noMatch )
+   )   
+  if 
+    atlDomainK(
+      K:K 
+      | procEnv(EP:EnvP) 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)
+
+      | ruleStore(  
+      atlRule(
+        RN:ProcName, 
+        C:QualifiedCid, 
+        V:VarExpr,
+        MODEL2:VarExpr, 
+        (DSL#Bool) OCLE:OclExp, 
+      DSS:DomainStmtSet
+      )  
+      ARS:AtlRuleSet    
+      )
+      | env(var(SUBS:Map{VarExpr,ValueExpr})) 
+      | actions(DSS:DomainStmtSet)
+      
+  ) 
+    => 
+    atlDomainK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | env(E:Env) 
+      | actions( noDomainStmt )
+    ) .
+
+
+
+
+  
+  
+  
+  
+  
+  crl [E-AtlRuleDomainActions] :
+    atlDomainK(
+      K:K
+      | ruleStore( ARS:AtlRuleSet )
+      | procEnv(EP:EnvP)
+      | queryDomain(IN:VarExpr, INM:IObjectSet, INNEW, INLOC, INSandpitOS, INSandpitLOC)
+      | trace(GlobalM1,LocalM1)
+      | env(E:Env)
+      | resolveTempClasses(QCS:Set{QualifiedCid})
+      | domain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC )
+      
+      | actions(domainStmt(MODEL:VarExpr, TREE:Stmt, GRAPH:Stmt, TRACE:TraceStmt) )  
+  )
+  =>
+    atlDomainK(
+      K:K 
+      | ruleStore( ARS:AtlRuleSet )
+      | procEnv(EP:EnvP)
+      | queryDomain(IN:VarExpr, INM:IObjectSet, INNEW, INLOC, INSandpitOS, INSandpitLOC)
+      | trace(
+          GlobalM3,       
+          LocalM3 
+        )            
+      | env(E2:Env)  
+      | resolveTempClasses(QCS:Set{QualifiedCid})
+      | domain(MODEL:VarExpr, M:IObjectSet, NEW2:Map{QualifiedCid,Oid}, LOC, OUTSandpitOS2, SandpitLOC2) 
+      | actions( noDomainStmt )
+  )
+  if    
+    
+    
+    fmaK(
+      extExprK( 
+        
+        exprModel(IN:VarExpr, INSandpitOS, INNEW, INSandpitLOC)
+        | exprTrace( (GlobalM1, LocalM1) ) 
+        | procEnv(EP:EnvP)
+      )
+      | extAtlK(
+        queryDomain(IN:VarExpr, INM:IObjectSet, INNEW, INLOC, INSandpitOS, INSandpitLOC)
+        | domain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC )
+        | trace(GlobalM1, LocalM1)  
+        | ruleStore( ARS:AtlRuleSet )
+        | procEnv(EP:EnvP)
+        | resolveTempClasses(QCS:Set{QualifiedCid})
+      )
+      | env(E:Env new(NEW) loc(SandpitLOC)) 
+      | model(SandpitOS) 
+      | stmt(TREE:Stmt))
+    => 
+    fmaK(
+      AK1:K
+      | env(E2:Env new(NEW2:Map{QualifiedCid,Oid}) loc(SandpitLOC2)) 
+      | model(OUTSandpitOS2) 
+      | extAtlK(
+        AK2:K
+        | trace(GlobalM2, LocalM2)  
+      )
+      | stmt(())) 
+  /\
+    
+    traceK(
+      env(E2:Env) 
+      | resolveTempClasses(QCS:Set{QualifiedCid})
+      | trace( GlobalM2, LocalM2 )  
+      | stmt(TRACE:TraceStmt)) 
+    => 
+    traceK(
+      AK3:K
+      | trace(GlobalM3,LocalM3) 
+      | stmt( tUnit )
+    ) 
+  .
+  
+
+
+
+  
+  
+  
+  
+  
+
+
+
+  
+  crl [E-AtlLazyRuleSideEffects] :
+    atlK( 
+      K:K 
+      | procEnv(EP:EnvP) 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+
+      | ruleStore(  
+        atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr, 
+            (DSL#Bool) OCLE:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | match( match(RN:ProcName, SUBS:Map{VarExpr,ValueExpr}) )
+    ) 
+  =>
+    atlK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | match( noMatch )
+    )   
+  if 
+    atlDomainK(
+      K:K 
+      | procEnv(EP:EnvP) 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)
+
+      | ruleStore(  
+        atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr, 
+            (DSL#Bool) OCLE:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | env(var(SUBS:Map{VarExpr,ValueExpr})) 
+      | actions(DSS:DomainStmtSet)
+    ) 
+  => 
+    atlDomainK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | env(E:Env) 
+      | actions( noDomainStmt )
+    ) .
+
+
+
+  
+  
+  crl [E-SetCmtUniLazyRuleInv] :
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc(SandpitLOC) 
+        new(SNEW)
+      ) 
+      | model(iOS1:IObjectSet)
+      | focus(L:Location)
+      | ps(P:PropName = val(OS1:IObjectSet), PS:PropSet)
+      | pendingActions( SAIS:IActionSet ) 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap})
+      )       
+      | extAtlK(
+        AK:K 
+        | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+        | domain(MN2:VarExpr, M:IObjectSet, NEW1:Map{QualifiedCid,Oid}, GLOC, CxOS1:IObjectSet, LOC1:Map{QualifiedCid,OuterMap})  
+        | trace(GlobalM1,LocalM1) 
+      ) 
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, val(O:Oid)))
+    )
+  => 
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc( 
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          ) 
+        )                                        
+        new( NEW )   
+      )   
+      | model(iOS1:IObjectSet)             
+      | focus(L:Location)
+      | ps(P:PropName = val(concat(OS1:IObjectSet, OS2:IObjectSet)), PS:PropSet)     
+      | pendingActions( SAIS:IActionSet ) 
+      | extExprK(
+        EK:K
+        | exprTrace( (GlobalM2,LocalM2) ) 
+      ) 
+      | extAtlK(      
+        AK':K                                
+        | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,               
+          NEW,  
+          GLOC,
+          CxOS1:IObjectSet,           
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          )       
+        ) 
+        | trace(GlobalM2,LocalM2)  
+      ) 
+      | stmt( () )
+    ) 
+  if 
+  
+  
+  
+    oid(MTN:ModelTypeName ! SC:Cid, OID:Nat) := deepestOid(L:Location)
+  /\ 
+    
+    hasOppositeRef(MTN:ModelTypeName ! SC:Cid,P) =/= true
+  /\  
+    
+    atlK(
+      AK:K 
+      | extExprK(
+        EK:K
+        | exprTrace( (GlobalM1,LocalM1) ) 
+      )  
+      | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+      
+      
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,   
+          SNEW, 
+          GLOC,
+          (
+
+            (1 |-> sentinel)         
+          ),          
+          SandpitLOC 
+
+      )   
+      | trace(GlobalM1,LocalM1)    
+      | match( match( RN:ProcName, SVAR:VarExpr |-> val(O:Oid) ) )
+    ) 
+    => 
+    atlK(
+      AK':K 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap}) 
+      )  
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,
+          NEW,  
+          GLOC,
+          OS2:IObjectSet,             
+          LOC       
+        ) 
+      | trace(GlobalM2,LocalM2) 
+      | match( noMatch )
+    ) .
+
+
+  
+  
+  crl [E-SetCmtBiLazyRuleInv] :
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc(SandpitLOC) 
+        new(SNEW)
+      ) 
+      | model(iOS1:IObjectSet)
+      | focus(L:Location)
+      | ps(P:PropName = val(OS1:IObjectSet), PS:PropSet)
+      | pendingActions( SAIS:IActionSet ) 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap})
+      )       
+      | extAtlK(
+        AK:K 
+        | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+        | domain(MN2:VarExpr, M:IObjectSet, NEW1:Map{QualifiedCid,Oid}, GLOC, CxOS1:IObjectSet, LOC1:Map{QualifiedCid,OuterMap})   
+        | trace(GlobalM1,LocalM1) 
+      ) 
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, val(O:Oid)))
+    )
+  => 
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc( 
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          ) 
+        )                                        
+        new( NEW )   
+      )   
+      | model(iOS1:IObjectSet)             
+      | focus(L:Location)
+      | ps(P:PropName = val(concat(OS1:IObjectSet, OS2:IObjectSet)), PS:PropSet)     
+      | pendingActions( createPendingActions(OS2:IObjectSet, P2:PropName, oid(MTN:ModelTypeName ! SC:Cid, OID:Nat), SAIS:IActionSet) )
+      | extExprK(
+        EK:K
+        | exprTrace( (GlobalM2,LocalM2) ) 
+      ) 
+      | extAtlK(      
+        AK':K                                
+        | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,               
+          NEW,  
+          GLOC,
+          CxOS1:IObjectSet,           
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          )       
+        ) 
+        | trace(GlobalM2,LocalM2)  
+      ) 
+      | stmt( () )
+    ) 
+  if 
+    
+    
+    
+    oid(MTN:ModelTypeName ! SC:Cid, OID:Nat) := deepestOid(L:Location)
+  /\ 
+    
+    P2:PropName := op(MTN:ModelTypeName ! SC:Cid, P) 
+  /\  
+    
+    atlK(
+      AK:K 
+      | extExprK(
+        EK:K
+        | exprTrace((GlobalM1,LocalM1)) 
+      )  
+      | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+      
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,   
+          SNEW, 
+          GLOC,
+          (
+
+            (1 |-> sentinel)         
+          ),          
+          SandpitLOC 
+
+      )     
+      | trace(GlobalM1,LocalM1)    
+      | match( match( RN:ProcName, SVAR:VarExpr |-> val(O:Oid) ) )
+    ) 
+    => 
+    atlK(
+      AK':K 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap}) 
+      )  
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,
+          NEW,  
+          GLOC,
+          OS2:IObjectSet,             
+          LOC       
+        ) 
+      | trace(GlobalM2,LocalM2)
+      | match( noMatch )
+    ) .
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  op createPendingActions : IObjectSet PropName Oid IActionSet -> IActionSet .
+  
+  eq createPendingActions( empty, P:PropName, SO:Oid, SAIS:IActionSet ) = SAIS:IActionSet .
+  eq createPendingActions( I:Int |-> sentinel, P:PropName, SO:Oid, SAIS:IActionSet ) = SAIS:IActionSet .
+  
+  eq createPendingActions( (I1:Int |-> { prop("_id") = val(TO:Oid), PS:PropSet }) iOS:IObjectSet, P:PropName, SO:Oid,(SAIS:IActionSet, I:Int |-> sentinel) ) =
+    createPendingActions( iOS:IObjectSet, P:PropName, SO:Oid,
+      ((I:Int |-> set(TO:Oid,P:PropName,SO:Oid)), ((I:Int +N 1) |-> sentinel), SAIS:IActionSet)
+    ) .
+
+
+
+
+  rl [E-SetCmtLazyRuleInv-Ref-Empty] : 
+    fmaK( 
+      K1:K
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, ref( (I:Int |-> sentinel)) ) )
+    )
+  =>
+    fmaK( 
+      K1:K
+      | stmt( () )
+    ) .
+
+
+
+
+  crl [E-SetCmtLazyRuleInv-Ref] : 
+    fmaK( 
+      K1:K
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, ref( ((I:Int |-> oid(C:QualifiedCid,OID:Int)) IS:IOidSet)) ) )
+    )
+  =>
+    fmaK( 
+      K3:K
+      | stmt( () )
+    )
+  if 
+    fmaK( 
+      K1:K
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, val( oid(C:QualifiedCid,OID:Int) ) ) )
+    )
+  =>
+    fmaK( 
+      K2:K
+      | stmt( () )
+    ) 
+  /\
+    fmaK( 
+      K2:K
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, ref( IS:IOidSet ) ) )
+    )
+  =>
+    fmaK( 
+      K3:K
+      | stmt( () )
+    ) .
+
+
+
+
+
+  crl [E-SetCmtLazyRuleInv-Expr] : 
+    fmaK( 
+      K1:K
+      | extExprK(EK:K)
+      | env( E:Env )
+      | stmt( setCmtLazyRule( P:PropName, RN:ProcName, EXPR:Expr ) )
+    )
+  =>
+    fmaK( 
+      K2:K
+      | stmt( () )
+    )
+  if
+    notValueExpr?(EXPR:Expr) 
+  /\
+    exprK(EK:K | exprEnv(E:Env) | expr(EXPR:Expr)) 
+    => 
+    exprK(output(VAL:ValueExpr))
+  /\
+    fmaK( 
+      K1:K
+      | extExprK(EK:K)
+      | env( E:Env )
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, VAL:ValueExpr ) )
+    )
+  =>
+    fmaK( 
+      K2:K
+      | stmt( () )
+    ) .
+  
+
+
+
+
+
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  op findEnablingMatch : QualifiedCid VarExpr OclExp IObjectSet Map{QualifiedCid,OuterTraceMap} Env ~> Oid .
+  ceq findEnablingMatch( C:QualifiedCid, V:VarExpr, FC:OclExp, M:IObjectSet, TM:Map{QualifiedCid,OuterTraceMap}, E:Env ) =
+    O
+  if  
+    RES:OclType := eval(C:QualifiedCid . allInstances() -> select( fmaVarToOclVar(V:VarExpr) | FC:OclExp ) -> asSequence() , getModclConfiguration(M:IObjectSet, E:Env))
+  /\
+    O := findEnabled(oclValToFmaVal(RES:OclType), TM:Map{QualifiedCid,OuterTraceMap}) .
+
+  
+  op findEnabled : ValueExpr Map{QualifiedCid,OuterTraceMap} ~> Oid .
+  
+  ceq findEnabled( ref((N1:Nat |-> O) IS1:IOidSet), OTLM ) =  
+    findEnabled(ref(IS1:IOidSet), OTLM) 
+  if isTraced( O, OTLM ) .
+  
+  eq findEnabled( ref((N2:Nat |-> sentinel)(N1:Nat |-> O) IS1:IOidSet),  OTLM) = O [owise] .
+
+
+
+
+
+  
+  
+  
+  
+
+  subsort Match < MatchPool .
+  
+  
+  
+  
+
+  sort MatchPool .
+  op __ : MatchPool MatchPool -> MatchPool [ctor assoc comm id: noMatch] .
+  op noMatch : -> MatchPool [ctor] .
+  
+  
+  op match : MatchPool -> K .
+  
+  op matchPool : MatchPool -> K .
+  op matchPool : List{WeightedMatch<=} -> K .
+
+  sort SchedulingPolicy .
+  op _;_ : SchedulingPolicy SchedulingPolicy -> SchedulingPolicy [ctor assoc id: noPolicy] .
+  op noPolicy : -> SchedulingPolicy [ctor] .
+  subsort ProcName < SchedulingPolicy .
+
+  op schedulingPolicy : SchedulingPolicy -> K [ctor] .
+
+  
+  
+  
+  
+  
+  
+  op findMatches : AtlRuleSet IObjectSet Env -> MatchPool .
+  eq findMatches( ARS:AtlRuleSet, M:IObjectSet, E:Env ) =
+    findMatches( ARS:AtlRuleSet, M:IObjectSet, E:Env, noMatch ) .
+
+  op findMatches : AtlRuleSet IObjectSet Env MatchPool -> MatchPool .
+  eq [findMatches-rules] : 
+    findMatches( 
+      atlRule(
+        RN:ProcName, 
+        C:QualifiedCid, 
+        V:VarExpr, 
+        MN:VarExpr, 
+        (DSL#Bool) FC:OclExp, 
+        DDS:DomainStmtSet
+      ) ARS:AtlRuleSet,
+      M:IObjectSet, 
+      E:Env,
+      MP:MatchPool 
+    ) 
+  =
+    findMatches( 
+      ARS:AtlRuleSet, 
+      M:IObjectSet, 
+      E:Env, 
+      MP:MatchPool findMatchesPerRule( RN:ProcName, C:QualifiedCid, V:VarExpr, FC:OclExp, M:IObjectSet, E:Env ) 
+    ) 
+  .
+  eq [findMatches-noRule] : findMatches( ARS:AtlRuleSet, M:IObjectSet, E:Env, MP:MatchPool ) = MP:MatchPool [owise] .
+
+  op disableMatch : MatchPool Oid -> MatchPool .
+  eq disableMatch( match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})) MP:MatchPool, O:Oid ) = 
+    disableMatch( MP:MatchPool, O:Oid ) .
+  eq disableMatch( M:MatchPool, O:Oid ) = M:MatchPool [owise] .
+
+  op disableMatch : List{WeightedMatch<=} Oid -> List{WeightedMatch<=} .
+  eq disableMatch( ML1 wMatch(match(RN:ProcName, (V:VarExpr |-> val(O:Oid), SUBS:Map{VarExpr,ValueExpr})),W:Rat) ML2, O:Oid ) = 
+    disableMatch( ML1 ML2, O:Oid ) .
+  eq disableMatch( ML1, O:Oid ) = ML1 [owise] .
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  op findMatchesPerRule : ProcName QualifiedCid VarExpr OclExp IObjectSet Env -> MatchPool .
+  eq findMatchesPerRule( RN:ProcName, C:QualifiedCid, V:VarExpr, true, M:IObjectSet, E:Env ) = noMatch
+    enumerateMatches(RN:ProcName, V:VarExpr, 
+      oclValToFmaVal(
+        ***(
+          eval(
+              C:QualifiedCid . allInstances() -> asSequence() , 
+              getModclConfiguration(M:IObjectSet, E:Env)
+          )
+        )
+        eval-allInstances-Seq(
+            C:QualifiedCid,
+            getModclConfiguration(M:IObjectSet, E:Env ),
+            Sequence{}
+        )
+      ),
+      noMatch
+    )
+  .
+  eq findMatchesPerRule( RN:ProcName, C:QualifiedCid, V:VarExpr, FC:OclExp, M:IObjectSet, E:Env ) =
+    enumerateMatches(RN:ProcName, V:VarExpr,
+      oclValToFmaVal(
+        ***(
+          eval(
+              C:QualifiedCid . allInstances() -> select( fmaVarToOclVar(V:VarExpr) | FC:OclExp ) -> asSequence() , 
+              getModclConfiguration(M:IObjectSet, E:Env)
+          )
+        )
+        eval-select(
+          eval-allInstances-Seq(
+              C:QualifiedCid,
+              getModclConfiguration(M:IObjectSet, E:Env ),
+              Sequence{}
+          ),
+          FC:OclExp,
+          fmaVarToOclVar(V:VarExpr),
+          getModclConfiguration(M:IObjectSet, E:Env ),
+          getModclConfiguration(M:IObjectSet, E:Env )
+        )
+      ),
+      noMatch
+    )
+  [owise] .
+
+
+
+
+***(  
+  eq findMatchesPerRule( RN:ProcName, C:QualifiedCid, V:VarExpr, true, M:IObjectSet, E:Env ) = noMatch
+    enumerateMatches(RN:ProcName, V:VarExpr, 
+      oclValToFmaVal(
+        eval(
+            C:QualifiedCid . allInstances() -> asSequence() , 
+            getModclConfiguration(M:IObjectSet, E:Env)
+        )
+      ),
+      noMatch
+    )
+  .
+  eq findMatchesPerRule( RN:ProcName, C:QualifiedCid, V:VarExpr, FC:OclExp, M:IObjectSet, E:Env ) =
+    enumerateMatches(RN:ProcName, V:VarExpr,
+      oclValToFmaVal(
+        eval(
+            C:QualifiedCid . allInstances() -> select( fmaVarToOclVar(V:VarExpr) | FC:OclExp ) -> asSequence() , 
+            getModclConfiguration(M:IObjectSet, E:Env)
+        )
+      ),
+      noMatch
+    )
+  [owise] .
+)  
+
+  
+  op enumerateMatches : ProcName VarExpr ValueExpr MatchPool -> MatchPool .
+  eq enumerateMatches( RN:ProcName, V:VarExpr, ref( I:Nat |-> sentinel ), MP:MatchPool ) = MP:MatchPool .
+  eq enumerateMatches( RN:ProcName, V:VarExpr, ref((I:Nat |-> O:Oid) (I2:Nat |-> sentinel) IS:IOidSet), MP:MatchPool ) =
+    enumerateMatches( 
+      RN:ProcName, 
+      V:VarExpr, 
+      ref((I2:Nat |-> sentinel) IS:IOidSet), 
+      match(RN:ProcName, V:VarExpr |-> val(O:Oid)) MP:MatchPool 
+    )
+  .
+
+  op existsMatch : ProcName MatchPool -> Bool .
+  eq existsMatch(RN:ProcName,  match(RN:ProcName,SUBS:Map{VarExpr,ValueExpr}) MP:MatchPool) = true .
+  eq existsMatch(RN:ProcName, MP:MatchPool) = false [owise] .
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  crl [E-HelperInv1] :
+  exprK(
+    EK:K
+    | procEnv( (helper context QC:QualifiedCid def : PN:ProcName ( PL:ParamList ) : RT:Scalar = OCLE:Expr ;) EP:EnvP)
+    | exprEnv(E:Env)
+    | expr(V1:ValueExpr . PN:ProcName ( AL:ArgList ))
+  ) 
+  => 
+    exprK(output(V2:ValueExpr)) 
+  if 
+    allValueExpr?(AL:ArgList) 
+  /\ 
+    exprK(
+      EK:K
+      | procEnv((helper context QC:QualifiedCid def : PN:ProcName ( PL:ParamList ) : RT:Scalar = OCLE:Expr ;) EP:EnvP)
+      | exprEnv( insertArgs(PL:ParamList, AL:ArgList, insert(var("self"), V1:ValueExpr, E:Env)) )
+      | expr(OCLE:Expr)
+    ) 
+    =>
+    exprK(output(V2:ValueExpr)) .
+     
+   
+  crl [E-HelperInv2] :
+    exprK(
+      EK:K
+      | expr(EX:Expr . PN:ProcName ( AL:ArgList ))
+    )
+  => 
+    exprK(output(V2:ValueExpr))
+  if 
+    notValueExpr?(EX:Expr)
+  /\
+    exprK(
+      EK:K
+      | expr(EX:Expr)
+    )
+    => 
+    exprK(output(V1:ValueExpr)) 
+  /\
+    exprK(
+      EK:K
+      | expr(V1:ValueExpr . PN:ProcName ( AL:ArgList ))
+    )
+    => 
+    exprK(output(V2:ValueExpr)) .
+
+
+
+  crl [E-HelperInv3] :
+    exprK(
+      EK:K
+      | expr(V:ValueExpr . PN:ProcName ( (AL1:ArgList, EXPR:Expr, AL2:ArgList)  ))
+    )
+  => 
+    exprK(output(V2:ValueExpr))
+  if 
+    allValueExpr?(AL1:ArgList) 
+  /\ 
+    notValueExpr?(EXPR:Expr) 
+  /\ 
+    exprK(
+      EK:K
+      | expr(EXPR:Expr)
+    )
+    => 
+    exprK(output(V1:ValueExpr)) 
+  /\
+    exprK(
+      EK:K
+      | expr(V:ValueExpr . PN:ProcName ( (AL1:ArgList, V1:ValueExpr, AL2:ArgList) ))
+    )
+    => 
+    exprK(output(V2:ValueExpr)) .   
+
+
+  crl [E-StaticHelperInv1] :
+  exprK(
+    EK:K
+    | procEnv( (helper def : PN:ProcName ( PL:ParamList ) : RT:Scalar = OCLE:Expr ;) EP:EnvP)
+    | exprEnv(E:Env)
+    | expr(thisModule . PN:ProcName ( AL:ArgList ))
+  ) 
+  => 
+    exprK(output(V2:ValueExpr)) 
+  if 
+    allValueExpr?(AL:ArgList) 
+  /\ 
+    exprK(
+      EK:K
+      | procEnv((helper def : PN:ProcName ( PL:ParamList ) : RT:Scalar = OCLE:Expr ;) EP:EnvP)
+      | exprEnv( insertArgs(PL:ParamList, AL:ArgList, E:Env) ) 
+      | expr(OCLE:Expr)
+    ) 
+    =>
+    exprK(output(V2:ValueExpr)) .
+     
+  
+
+  crl [E-StaticHelperInv3] :
+    exprK(
+      EK:K
+      | expr(thisModule . PN:ProcName ( (AL1:ArgList, EXPR:Expr, AL2:ArgList)  ))
+    )
+  => 
+    exprK(output(V2:ValueExpr))
+  if 
+    allValueExpr?(AL1:ArgList) 
+  /\ 
+    notValueExpr?(EXPR:Expr) 
+  /\ 
+    exprK(
+      EK:K
+      | expr(EXPR:Expr)
+    )
+    => 
+    exprK(output(V1:ValueExpr)) 
+  /\
+    exprK(
+      EK:K
+      | expr(thisModule . PN:ProcName ( (AL1:ArgList, V1:ValueExpr, AL2:ArgList) ))
+    )
+    => 
+    exprK(output(V2:ValueExpr)) .   
+
+  
+  
+  
+  rl [E-HelperAttributeInv] :
+    exprK(
+      EK:K
+      | procEnv( atlAttribute(PN:ProcName,VAL:ValueExpr) EP:EnvP)
+      | expr(thisModule . PN:ProcName )
+    ) 
+  => 
+    exprK(output(VAL:ValueExpr)) 
+ .
+ 
+ 
+  
+  crl [E-AtlResolveTempExpr] :
+    exprK(EK:K | exprTrace(TM:Map{QualifiedCid,OuterTraceMap}) | expr( resolveTemp(EXPR:Expr, V:ValueExpr) ))
+  => 
+    exprK(output(resolveTemp(VAL:ValueExpr, V:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap})))
+  if
+    exprK(EK:K | exprTrace(TM:Map{QualifiedCid,OuterTraceMap}) | expr(EXPR:Expr))
+    =>
+    exprK(output(VAL:ValueExpr)) .
+  
+ 
+ 
+ 
+ 
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  op resolveTemp : ValueExpr ValueExpr Map{QualifiedCid,OuterTraceMap}  ~> ValueExpr .
+  
+  ceq [resolveTemp-value] : resolveTemp( val(SO:Oid), VAL:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap}) = 
+    val(TO:Oid)
+  
+  if linkTarget(RN:ValueExpr,TO:Oid) := get(linkSource(SO:Oid,VAL:ValueExpr), TM:Map{QualifiedCid,OuterTraceMap}) .
+
+  eq [resolveTemp-refs] : resolveTemp( ref(IS:IOidSet), VAL:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap} ) =
+    ref(image( ref(IS:IOidSet), VAL:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap}, 0 |-> sentinel )) .
+
+  
+  op image : ValueExpr ValueExpr Map{QualifiedCid,OuterTraceMap} IOidSet ~> IOidSet .
+
+  
+  eq [image-ref-empty] : image( ref(empty), VAL:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap}, IS:IOidSet ) = IS:IOidSet  . 
+
+  eq [image-ref-sentinel] : image( ref( (I:Nat |-> sentinel ) ), VAL:ValueExpr, TM:Map{QualifiedCid,OuterTraceMap}, IS:IOidSet ) = IS:IOidSet . 
+
+  ceq [image-ref-collection-grabbedByPattern] : 
+    image( 
+        ref((I:Nat |-> SO:Oid) (I2:Nat |-> sentinel) IS1:IOidSet), 
+        VAL:ValueExpr, 
+        TM:Map{QualifiedCid,OuterTraceMap}, 
+        (I3:Nat |-> sentinel) IS2:IOidSet
+    ) 
+  =
+    image( 
+      ref((I2:Nat |-> sentinel) IS1:IOidSet), 
+      VAL:ValueExpr, 
+      TM:Map{QualifiedCid,OuterTraceMap},
+      (I3:Nat |-> TO:Oid) (I3:Nat +N 1 |-> sentinel) IS2:IOidSet
+    )
+  
+  if linkTarget(RN:ValueExpr,TO:Oid) := get( linkSource(SO:Oid,VAL:ValueExpr), TM:Map{QualifiedCid,OuterTraceMap} ) . 
+  
+  ceq [image-ref-collection-notInPattern] : 
+    image( 
+        ref((I:Nat |-> SO:Oid) (I2:Nat |-> sentinel) IS1:IOidSet), 
+        VAL:ValueExpr, 
+        TM:Map{QualifiedCid,OuterTraceMap}, 
+        IS2:IOidSet
+    ) 
+  =
+    image( 
+      ref((I2:Nat |-> sentinel) IS1:IOidSet), 
+      VAL:ValueExpr, 
+      TM:Map{QualifiedCid,OuterTraceMap},
+      IS2:IOidSet
+    )
+  if 
+    
+    get( linkSource(SO:Oid,VAL:ValueExpr), TM:Map{QualifiedCid,OuterTraceMap} ) == undefined 
+  /\
+    isTraced(SO:Oid, TM:Map{QualifiedCid,OuterTraceMap})
+  .
+
+
+  op isTraced : Oid Map{QualifiedCid,OuterTraceMap} -> Bool .
+  ceq isTraced( oid(C,N), TM:Map{QualifiedCid,OuterTraceMap} ) = T:Map{LinkSource,LinkTarget} =/= empty
+  if
+    OM:Map{Nat,InnerTraceMap} := TM:Map{QualifiedCid,OuterTraceMap} [ C ]
+  /\
+    IM:Map{Nat,Trace} := OM:Map{Nat,InnerTraceMap} [ N quo 100 ]
+  /\
+    T:Map{LinkSource,LinkTarget} := IM:Map{Nat,Trace} [ N rem 100 ] .
+  eq isTraced( O, TM:Map{QualifiedCid,OuterTraceMap} ) = false [owise] .
+***(
+  
+  eq [image-ref-collection] : 
+    image( 
+        ref(IS1:IOidSet), 
+        VAL:ValueExpr, 
+        TM:Map{QualifiedCid,OuterMap}, 
+        IS2:IOidSet
+    ) 
+  =
+    IS2:IOidSet [owise] .
+)  
+  
+  
+  
+  
+
+  op extAtlK : K -> K .
+
+       
+
+
+
+
+
+
+
+
+
+  vars K K' EK : K .
+  var E : Env .
+  var P : PropName .
+  var PATTERN : ValueExpr .
+  var V : ValueExpr .
+  var PS : PropSet .
+
+
+  
+  crl [E-CmtArgument-ResolveTemp] :
+    fmaK(K | extExprK(EK) | env(E) | stmt(setCmt(P, resolveTemp(VAR:VarExpr,PATTERN) )))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    exprK(EK | exprEnv(E) | expr( resolveTemp(VAR:VarExpr,PATTERN) )) 
+    => 
+    exprK(output(V:ValueExpr))
+  /\
+    fmaK(K | extExprK(EK) | env(E) | stmt(setCmt(P, V:ValueExpr)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+
+
+  
+  
+
+  
+  crl [E-RefSet-OclExp] :
+    fmaK(K | extExprK(EK) | env(E) | ps(P = ref(IS:IOidSet), PS) | stmt( setCmt(P, resolveTemp(EXPR:Expr, PATTERN) )))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    exprK(EK | exprEnv(E) | expr( resolveTemp(EXPR:Expr, PATTERN) )) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK) | env(E) | ps(P = ref(IS:IOidSet), PS) | stmt(setCmt(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+  
+  crl [E-CmtSet-OclExp] :
+    fmaK(K | extExprK(EK) | env(E) | ps(P = val(OS:IObjectSet), PS) | stmt(setCmt(P, resolveTemp(EXPR:Expr, PATTERN) )))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    exprK(EK | exprEnv(E) | expr( resolveTemp(EXPR:Expr, PATTERN) )) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK) | env(E) | ps(P = val(OS:IObjectSet), PS) | stmt(setCmt(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+endm
+

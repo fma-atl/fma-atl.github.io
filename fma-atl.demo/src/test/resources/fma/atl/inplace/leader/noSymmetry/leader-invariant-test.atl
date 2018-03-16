@@ -1,0 +1,7 @@
+-- @atlcompiler atl2010
+-- @path Network=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/leader/Network.ecore
+module leader;
+create OUT: Network refining IN: Network;
+
+helper def : eLeader : Boolean = 
+false;

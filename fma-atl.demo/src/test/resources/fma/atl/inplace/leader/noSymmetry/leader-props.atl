@@ -1,0 +1,13 @@
+-- @atlcompiler atl2010
+-- @path Network=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/leader/Network.ecore
+module leader;
+create OUT: Network refining IN: Network;
+
+helper def : eLeader : Boolean = 
+Network!Process.allInstances()-> exists( p1 | p1.leader='true' ) ;
+
+helper def : mLeader : Boolean = 
+Network!Process.allInstances()-> exists( p1 | 
+	p1.leader='true' and 
+	p1.owner.processes->exists( p2 | p2<>p1 and p2.leader='true')) ;
+

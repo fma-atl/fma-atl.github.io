@@ -1,0 +1,105 @@
+
+
+
+
+
+
+
+
+
+
+mod PLANTUML is
+  pr MODEL .
+
+  sorts PlantUMLObject PlantUMLAttribute PlantUMLLink PlantUMLContainment PlantUMLElement PlantUMLSet .
+  subsorts PlantUMLObject PlantUMLAttribute PlantUMLLink PlantUMLContainment < PlantUMLElement .
+  subsort PlantUMLElement < PlantUMLSet .
+  op __ : PlantUMLSet PlantUMLSet -> PlantUMLSet [assoc comm id: empty] .
+  op empty : -> PlantUMLSet .
+  
+  
+  
+  op object_as_ : String String -> PlantUMLObject .
+  
+  op _:_=_ : String String String -> PlantUMLAttribute .
+  op _:_=_ : String String Int -> PlantUMLAttribute .
+  op _:_=_ : String String Float -> PlantUMLAttribute .
+  op _:_=_ : String String Bool -> PlantUMLAttribute .
+  
+  op _--__ : String String String -> PlantUMLLink .
+  op _*--__ : String String String -> PlantUMLContainment .
+endm
+
+mod MODEL_PLANTUML is
+  pr PLANTUML .
+  
+  
+  var P : PropName .
+  var PS PS1 PS2 : PropSet .
+  var FV : Float .
+  var SV : String .
+  var IV I I1 I2 : Int . 
+  var BV : Bool .
+  var O O1 O2 : Oid .
+  var C C1 C2 : String .
+  var IS : IOidSet .
+  var OS : IObjectSet .
+  var MN : String .
+  
+  op compileOidToPlantUML : Oid -> String .
+  eq compileOidToPlantUML( oid(metamodel(MN) ! cid(C),IV) ) = string(IV,10) + " : " + C .
+  eq compileOidToPlantUML( oid(metamodel(MN) ! cid(C),SV) ) = SV + " : " + C .
+  
+  op compileOidToPlantUMLId : Oid -> String .
+  eq compileOidToPlantUMLId( oid(metamodel(MN) ! cid(C),IV) ) = C + string(IV,10) .
+  eq compileOidToPlantUMLId( oid(metamodel(MN) ! cid(C),SV) ) = C + SV .
+
+  op compileToPlantUML : IObjectSet -> PlantUMLSet .
+  eq compileToPlantUML( (I |-> { prop("_id") = val(O), PS }) OS ) = 
+  	(object compileOidToPlantUML(O) as compileOidToPlantUMLId(O)) 
+  	compileToPlantUML( OS )
+  	compilePSToPlantUML( O, PS ) .
+  eq compileToPlantUML( empty ) = empty . 
+  eq compileToPlantUML( I |-> sentinel ) = empty . 
+
+
+  op compilePSToPlantUML : Oid PropSet -> PlantUMLSet .
+  eq compilePSToPlantUML( O, (P = val(IV), PS) ) = 
+  	(compileOidToPlantUMLId(O) : getPropName(P) = IV) 
+  	compilePSToPlantUML(O, PS) . 
+  eq compilePSToPlantUML( O, (P = val(FV), PS) ) = 
+    (compileOidToPlantUMLId(O) : getPropName(P) = FV) 
+    compilePSToPlantUML(O, PS) . 
+  eq compilePSToPlantUML( O, (P = val(SV), PS) ) = 
+  	(compileOidToPlantUMLId(O) : getPropName(P) = SV) 
+  	compilePSToPlantUML(O, PS) . 
+  eq compilePSToPlantUML( O, (P = val(BV), PS) ) = 
+  	(compileOidToPlantUMLId(O) : getPropName(P) = BV) 
+  	compilePSToPlantUML(O, PS) . 
+  eq compilePSToPlantUML( O, (P = val(literal(SV)), PS) ) = 
+    (compileOidToPlantUMLId(O) : getPropName(P) = SV) 
+    compilePSToPlantUML(O, PS) . 
+  
+  ceq compilePSToPlantUML( O1, (P = ref((I |-> O2) IS), PS) ) = 
+  	(compileOidToPlantUMLId(O1) -- getPropName(P) compileOidToPlantUMLId(O2)) compilePSToPlantUML(O1, (P = ref(IS), PS)) 
+  if O2 =/= sentinel . 
+  eq compilePSToPlantUML( O1, (P = ref(empty), PS) ) = 
+  	compilePSToPlantUML(O1, PS) . 
+  eq compilePSToPlantUML( O1, (P = ref(I |-> sentinel), PS) ) = 
+  	compilePSToPlantUML(O1, PS) . 
+
+  eq compilePSToPlantUML( O1, (P = val(((I |-> { prop("_id") = val(O2), PS2 }) OS)), PS1) ) = 
+    (compileOidToPlantUMLId(O1) *-- getPropName(P) compileOidToPlantUMLId(O2)) 
+    compilePSToPlantUML(O1, (P = val(OS), PS1)) 
+    compileToPlantUML( (I |-> { prop("_id") = val(O2), PS2 }) ) . 
+  eq compilePSToPlantUML( O1, (P = val(empty), PS) ) = compilePSToPlantUML(O1, PS) . 
+  eq compilePSToPlantUML( O1, (P = val(I |-> sentinel), PS) ) = compilePSToPlantUML(O1, PS) . 
+
+  eq compilePSToPlantUML( O, noProp ) = empty .
+  
+  
+  
+  op getPropName : PropName -> String .
+  eq getPropName(prop(S:String)) = S:String .
+   
+endm 

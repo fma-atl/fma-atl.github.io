@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Class:Model xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Class="uk.ac.le.cs.moment2.hierarchicalgraph" ID="_fyM2UCUiEeiZs4dLU1ToNg">
+  <type href="fma.refining.Class.org#//Package"/>
+  <objects name="1 : Package" ID="_fyM2USUiEeiZs4dLU1ToNg">
+    <type href="fma.refining.Class.org#//Package"/>
+    <attributes value="name : ">
+      <type href="fma.refining.Class.org#//NamedElement/name"/>
+    </attributes>
+    <references xsi:type="Class:Location" name="classifiers">
+      <value name="2 : Class" ID="_fyM2UiUiEeiZs4dLU1ToNg">
+        <type href="fma.refining.Class.org#//Class"/>
+        <attributes value="name : 'A'">
+          <type href="fma.refining.Class.org#//NamedElement/name"/>
+        </attributes>
+        <references xsi:type="Class:Location" name="attr">
+          <value name="3 : Attribute" ID="_fyM2UyUiEeiZs4dLU1ToNg">
+            <type href="fma.refining.Class.org#//Attribute"/>
+            <attributes value="name : 'a'">
+              <type href="fma.refining.Class.org#//NamedElement/name"/>
+            </attributes>
+            <attributes value="isPrivate : false">
+              <type href="fma.refining.Class.org#//Attribute/isPrivate"/>
+            </attributes>
+            <references xsi:type="Class:Link" name="type" value="_fyM2ViUiEeiZs4dLU1ToNg"/>
+          </value>
+          <value name="4 : Attribute" ID="_fyM2VCUiEeiZs4dLU1ToNg">
+            <type href="fma.refining.Class.org#//Attribute"/>
+            <attributes value="name : 'b'">
+              <type href="fma.refining.Class.org#//NamedElement/name"/>
+            </attributes>
+            <attributes value="isPrivate : true">
+              <type href="fma.refining.Class.org#//Attribute/isPrivate"/>
+            </attributes>
+            <references xsi:type="Class:Link" name="type" value="_fyM2ViUiEeiZs4dLU1ToNg"/>
+          </value>
+        </references>
+        <references xsi:type="Class:Location" name="op">
+          <value name="5 : Operation" ID="_fyM2VSUiEeiZs4dLU1ToNg">
+            <type href="fma.refining.Class.org#//Operation"/>
+            <attributes value="name : 'operation'">
+              <type href="fma.refining.Class.org#//NamedElement/name"/>
+            </attributes>
+            <attributes value="isPrivate : false">
+              <type href="fma.refining.Class.org#//Operation/isPrivate"/>
+            </attributes>
+            <references xsi:type="Class:Link" name="returnType" value="_fyM2ViUiEeiZs4dLU1ToNg"/>
+          </value>
+        </references>
+      </value>
+      <value name="6 : DataType" ID="_fyM2ViUiEeiZs4dLU1ToNg">
+        <type href="fma.refining.Class.org#//DataType"/>
+        <attributes value="name : 'String'">
+          <type href="fma.refining.Class.org#//NamedElement/name"/>
+        </attributes>
+      </value>
+    </references>
+  </objects>
+</Class:Model>

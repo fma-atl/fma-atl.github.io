@@ -1,0 +1,10 @@
+mod FMA-OCL-SEMANTICS is
+  
+  
+  
+  
+  extending FMA-OCL-SEMANTICS-ERROR .
+  	  
+endm
+
+

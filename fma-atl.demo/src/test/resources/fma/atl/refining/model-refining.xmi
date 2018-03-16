@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="ASCII"?>
+<Class:Package xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Class="fma.refining.Class.org" name="">
+  <classifiers xsi:type="Class:DataType" name="String"/>
+  <classifiers xsi:type="Class:Class" name="A">
+    <attr name="a" type="//@classifiers.0"/>
+  </classifiers>
+</Class:Package>

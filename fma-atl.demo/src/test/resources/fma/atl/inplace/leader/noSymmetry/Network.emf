@@ -1,0 +1,29 @@
+@namespace(uri="org.fma-atl", prefix="fma-atl")
+package Network;
+
+abstract class Root {
+	
+} 
+
+class Network extends Root {
+  val Process[*]#owner processes;
+  val Message[*]#owner messages;
+}
+
+class Process {
+  attr String[0..1] pID;
+  attr String[1] active;
+  attr String[1] leader;
+  ref Network[1]#processes owner;
+  ref Process[1] next;
+}
+
+class Message extends Root {
+  attr String[0..1] mID;
+  ref Network[1]#messages owner;
+  ref Process[1] at;
+}
+
+
+
+

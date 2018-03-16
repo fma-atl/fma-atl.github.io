@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Class:Package xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Class="fma.refining.Class.org">
+  <classifiers xsi:type="Class:Class" name="A">
+    <attr name="a" isPrivate="true" type="//@classifiers.1"/>
+    <op name="get_a" isPrivate="true" returnType="//@classifiers.1"/>
+  </classifiers>
+  <classifiers xsi:type="Class:DataType" name="String"/>
+</Class:Package>

@@ -1,0 +1,556 @@
+
+mod FMA-ATL-MODELS is
+  inc FMA-ATL-SEMANTICS .
+
+  eq runtimeOptions = { prop("surfaceDsl") = val("FmaAtl"), prop("mode") = val("normal") } .
+
+  eq cl(metamodel("CD") ! cid("NamedElt")) = 
+	(prop("name") :t DSL#String)
+ .
+eq cl(metamodel("CD") ! cid("Classifier")) = 
+	(prop("name") :t DSL#String)
+ .
+eq cl(metamodel("CD") ! cid("DataType")) = 
+	(prop("name") :t DSL#String)
+ .
+eq default(metamodel("CD") ! cid("DataType")) = (prop("name") = val("")) .
+eq cl(metamodel("CD") ! cid("Class")) = 
+	(prop("name") :t DSL#String)
+	(prop("isAbstract") :t DSL#Bool)
+	(prop("attr") :t (metamodel("CD") ! cid("Attribute"))[0 .. -1] { ordered } bi(prop("owner")) )
+	(prop("super") :t ref( metamodel("CD") ! cid("Class"))[0 .. -1] { set } uni)
+ .
+eq default(metamodel("CD") ! cid("Class")) = (prop("name") = val("")),(prop("isAbstract") = val(false)),(prop("attr") = val(0 |-> sentinel)),(prop("super") = ref(0 |-> sentinel)) .
+eq cl(metamodel("CD") ! cid("Attribute")) = 
+	(prop("name") :t DSL#String)
+	(prop("multiValued") :t DSL#Bool)
+	(prop("type") :t ref( metamodel("CD") ! cid("Classifier"))[1 .. 1] { set } uni)
+	(prop("owner") :t ref( metamodel("CD") ! cid("Class"))[1 .. 1] { set } bi(prop("attr")) )
+ .
+eq default(metamodel("CD") ! cid("Attribute")) = (prop("name") = val("")),(prop("multiValued") = val(false)),(prop("type") = ref(0 |-> sentinel)),(prop("owner") = ref(0 |-> sentinel)) .
+eq cl(metamodel("CD") ! cid("Package")) = 
+	(prop("name") :t DSL#String)
+	(prop("classifiers") :t (metamodel("CD") ! cid("Classifier"))[0 .. -1] { ordered } uni)
+ .
+eq default(metamodel("CD") ! cid("Package")) = (prop("name") = val("")),(prop("classifiers") = val(0 |-> sentinel)) .
+eq r(metamodel("CD")) = metamodel("CD") ! cid("NamedElt") .
+eq sr(metamodel("CD")) = subtype(metamodel("CD") ! cid("Classifier"), metamodel("CD") ! cid("NamedElt")) subtype(metamodel("CD") ! cid("DataType"), metamodel("CD") ! cid("NamedElt")) subtype(metamodel("CD") ! cid("DataType"), metamodel("CD") ! cid("Classifier")) subtype(metamodel("CD") ! cid("Class"), metamodel("CD") ! cid("NamedElt")) subtype(metamodel("CD") ! cid("Class"), metamodel("CD") ! cid("Classifier")) subtype(metamodel("CD") ! cid("Attribute"), metamodel("CD") ! cid("NamedElt")) subtype(metamodel("CD") ! cid("Package"), metamodel("CD") ! cid("NamedElt")) subtype(metamodel("CD") ! cid("Package"), metamodel("CD") ! cid("Classifier")) .
+eq cl(metamodel("Relational") ! cid("Named")) = 
+	(prop("name") :t DSL#String)
+ .
+eq cl(metamodel("Relational") ! cid("Table")) = 
+	(prop("name") :t DSL#String)
+	(prop("col") :t (metamodel("Relational") ! cid("Column"))[0 .. -1] { ordered } bi(prop("owner")) )
+	(prop("key") :t ref( metamodel("Relational") ! cid("Column"))[0 .. -1] { set } bi(prop("keyOf")) )
+ .
+eq default(metamodel("Relational") ! cid("Table")) = (prop("name") = val("")),(prop("col") = val(0 |-> sentinel)),(prop("key") = ref(0 |-> sentinel)) .
+eq cl(metamodel("Relational") ! cid("Column")) = 
+	(prop("name") :t DSL#String)
+	(prop("owner") :t ref( metamodel("Relational") ! cid("Table"))[1 .. 1] { set } bi(prop("col")) )
+	(prop("keyOf") :t ref( metamodel("Relational") ! cid("Table"))[0 .. 1] { set } bi(prop("key")) )
+	(prop("type") :t ref( metamodel("Relational") ! cid("Type"))[1 .. 1] { set } uni)
+ .
+eq default(metamodel("Relational") ! cid("Column")) = (prop("name") = val("")),(prop("owner") = ref(0 |-> sentinel)),(prop("keyOf") = ref(0 |-> sentinel)),(prop("type") = ref(0 |-> sentinel)) .
+eq cl(metamodel("Relational") ! cid("Type")) = 
+	(prop("name") :t DSL#String)
+ .
+eq default(metamodel("Relational") ! cid("Type")) = (prop("name") = val("")) .
+eq cl(metamodel("Relational") ! cid("Database")) = 
+	(prop("name") :t DSL#String)
+	(prop("tables") :t (metamodel("Relational") ! cid("Table"))[0 .. -1] { ordered } uni)
+ .
+eq default(metamodel("Relational") ! cid("Database")) = (prop("name") = val("")),(prop("tables") = val(0 |-> sentinel)) .
+eq cl(metamodel("Relational") ! cid("RootElt")) = 
+noField .
+eq r(metamodel("Relational")) = metamodel("Relational") ! cid("RootElt") .
+eq sr(metamodel("Relational")) = subtype(metamodel("Relational") ! cid("Table"), metamodel("Relational") ! cid("Named")) subtype(metamodel("Relational") ! cid("Column"), metamodel("Relational") ! cid("Named")) subtype(metamodel("Relational") ! cid("Type"), metamodel("Relational") ! cid("Named")) subtype(metamodel("Relational") ! cid("Type"), metamodel("Relational") ! cid("RootElt")) subtype(metamodel("Relational") ! cid("Database"), metamodel("Relational") ! cid("Named")) subtype(metamodel("Relational") ! cid("Database"), metamodel("Relational") ! cid("RootElt")) .
+
+
+  op inModel : -> IObjectSet [ctor] .
+  eq inModel = (
+  	(0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Package"), 0)) 
+,
+ prop("name") = val("Types"),
+ prop("classifiers") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("DataType"), 0)) 
+,
+ prop("name") = val("String")}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("DataType"), 1)) 
+,
+ prop("name") = val("Integer")}
+) (2 |-> sentinel)))}
+)(1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Package"), 1)) 
+,
+ prop("name") = val("Package - 0"),
+ prop("classifiers") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Class"), 0)) 
+,
+ prop("name") = val("A - 0"),
+ prop("super") = ref((0 |-> sentinel)),
+ prop("attr") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 0)) 
+,
+ prop("name") = val("b - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 1)) 
+,
+ prop("name") = val("e - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 2)) 
+,
+ prop("name") = val("name - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 3)) 
+,
+ prop("name") = val("number - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("isAbstract") = val(false)}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Class"), 1)) 
+,
+ prop("name") = val("B - 0"),
+ prop("super") = ref((0 |-> sentinel)),
+ prop("attr") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 4)) 
+,
+ prop("name") = val("c - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 5)) 
+,
+ prop("name") = val("a - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 6)) 
+,
+ prop("name") = val("name - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 7)) 
+,
+ prop("name") = val("number - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("isAbstract") = val(false)}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Class"), 2)) 
+,
+ prop("name") = val("C - 0"),
+ prop("super") = ref((0 |-> sentinel)),
+ prop("attr") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 8)) 
+,
+ prop("name") = val("d - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 9)) 
+,
+ prop("name") = val("b - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 10)) 
+,
+ prop("name") = val("name - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 11)) 
+,
+ prop("name") = val("number - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("isAbstract") = val(false)}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Class"), 3)) 
+,
+ prop("name") = val("D - 0"),
+ prop("super") = ref((0 |-> sentinel)),
+ prop("attr") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 12)) 
+,
+ prop("name") = val("e - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 13)) 
+,
+ prop("name") = val("c - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 2)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 14)) 
+,
+ prop("name") = val("name - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 15)) 
+,
+ prop("name") = val("number - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("isAbstract") = val(false)}
+) (4 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Class"), 4)) 
+,
+ prop("name") = val("E - 0"),
+ prop("super") = ref((0 |-> sentinel)),
+ prop("attr") = val(((0 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 16)) 
+,
+ prop("name") = val("a - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel))}
+) (1 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 17)) 
+,
+ prop("name") = val("d - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 3)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel))}
+) (2 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 18)) 
+,
+ prop("name") = val("name - 0"),
+ prop("multiValued") = val(false),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 0)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel))}
+) (3 |-> { prop("_id") = val(oid(metamodel("CD") ! cid("Attribute"), 19)) 
+,
+ prop("name") = val("number - 0"),
+ prop("multiValued") = val(true),
+ prop("type") = ref((0 |-> oid(metamodel("CD") ! cid("DataType"), 1)) (1 |-> sentinel)),
+ prop("owner") = ref((0 |-> oid(metamodel("CD") ! cid("Class"), 4)) (1 |-> sentinel))}
+) (4 |-> sentinel))),
+ prop("isAbstract") = val(false)}
+) (5 |-> sentinel)))}
+)(2 |-> sentinel)
+  ) .
+
+  op inLoc : -> Map{QualifiedCid,OuterMap} .
+
+  op inNew : -> Map{QualifiedCid,Oid} .
+  eq inNew = (
+	(metamodel("CD") ! cid("Package") |-> oid(metamodel("CD") ! cid("Package"),2)), (metamodel("CD") ! cid("DataType") |-> oid(metamodel("CD") ! cid("DataType"),2)), (metamodel("CD") ! cid("Class") |-> oid(metamodel("CD") ! cid("Class"),5)), (metamodel("CD") ! cid("Attribute") |-> oid(metamodel("CD") ! cid("Attribute"),20))
+  ) .
+
+  op outLoc : -> Map{QualifiedCid,OuterMap} .
+  eq outLoc = empty .
+
+  op outNew : -> Map{QualifiedCid,Oid} .
+  eq outNew = (
+	(metamodel("Relational") ! cid("Table") |-> oid(metamodel("Relational") ! cid("Table"), 0)),(metamodel("Relational") ! cid("Column") |-> oid(metamodel("Relational") ! cid("Column"), 0)),(metamodel("Relational") ! cid("Type") |-> oid(metamodel("Relational") ! cid("Type"), 0)),(metamodel("Relational") ! cid("Database") |-> oid(metamodel("Relational") ! cid("Database"), 0))
+  ) .
+
+
+  op trafo : -> AtlTrafoStmt .
+  eq trafo = (
+	module "Package2Database" ;
+create var("OUT") : metamodel("Relational")  from  (var("IN") : metamodel("CD"))
+rule proc("DataType2Type") {
+	from var("dt") : (metamodel("CD") ! cid("DataType")) in var("IN")
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Type")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) oclVar("dt") . prop("name"))
+				)
+		))
+		)
+}
+rule proc("zClass2Table") {
+	from var("c") : (metamodel("CD") ! cid("Class")) in var("IN")
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Table")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) oclVar("c") . prop("name"))
+				),
+			(prop("col") <- let var("a2") = ( metamodel("CD") ! cid("Attribute") ) oclVar("c") . prop("attr") -> select (
+						oclVar("a1") | (not (oclVar("a1") . prop("multiValued"))) 
+					) in 
+		let var("0") = resolveTemp (
+			var("a2"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Column"))  Sequence {oclVar("key") } -> union (
+								oclVar("0")
+							))
+				),
+			(prop("key") <- (
+					(metamodel("Relational") ! cid("Column")) Sequence {oclVar("key") })
+				)
+		)),
+		(var("key")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) "objectId")
+				),
+			(prop("type") <- let var("1") = thisModule . proc("objectIdType") in let var("2") = var("1") in
+		let var("3") = resolveTemp (
+			var("2"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("3"))
+				)
+		))
+		)
+}
+rule proc("zPackage2Database") {
+	from var("p") : (metamodel("CD") ! cid("Package")) in var("IN")
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Database")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) oclVar("p") . prop("name"))
+				),
+			(prop("tables") <- let var("a2") = ( metamodel("CD") ! cid("Attribute") )  oclVar("p") . prop("classifiers") -> select (
+		 				oclVar("c2") | oclVar("c2") . oclIsTypeOf (
+		 								(metamodel("CD") ! cid("Class"))
+		 							) 
+		 			) -> collect (
+		 				oclVar("c3") | oclVar("c3") . prop("attr") 
+		 			) -> flatten (
+				) -> select (
+						oclVar("a1") | oclVar("a1") . prop("multiValued") 
+					) in 
+		let var("c1") = ( metamodel("CD") ! cid("Class") ) oclVar("p") . prop("classifiers") -> select (
+						oclVar("c0") | oclVar("c0") . oclIsTypeOf (
+										(metamodel("CD") ! cid("Class"))
+									) 
+					) in 
+		let var("4") = resolveTemp (
+			var("c1"),
+			val("out")
+		) in let var("5") = resolveTemp (
+			var("a2"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Table"))  oclVar("4") -> union (
+								oclVar("5")
+							))
+				)
+		))
+		)
+}
+rule proc("DataTypeAttribute2Column") {
+	from var("a") : (metamodel("CD") ! cid("Attribute")) in var("IN")((
+						(DSL#Bool) ((oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) . oclIsKindOf (
+										(metamodel("CD") ! cid("DataType"))
+									) and ( (not (oclVar("a") . prop("multiValued"))) )))
+					) ) 
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) oclVar("a") . prop("name"))
+				),
+			(prop("type") <- let var("6") = (metamodel("CD") ! cid("Classifier")) oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) in
+		let var("7") = resolveTemp (
+			var("6"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("7"))
+				)
+		))
+		)
+}
+rule proc("MultiValuedDataTypeAttribute2Column") {
+	from var("a") : (metamodel("CD") ! cid("Attribute")) in var("IN")((
+						(DSL#Bool) ((oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) . oclIsKindOf (
+										(metamodel("CD") ! cid("DataType"))
+									) and oclVar("a") . prop("multiValued")))
+					) ) 
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Table")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) ((oclVar("a") . prop("owner") -> asSequence ( ) -> first ( ) . prop("name") + "_") + oclVar("a") . prop("name")))
+				),
+			(prop("col") <- (
+					(metamodel("Relational") ! cid("Column")) Sequence {oclVar("id"), oclVar("value") })
+				)
+		)),
+		(var("id")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) (oclVar("a") . prop("owner") -> asSequence ( ) -> first ( ) . prop("name") + "Id"))
+				),
+			(prop("type") <- let var("8") = thisModule . proc("objectIdType") in let var("9") = var("8") in
+		let var("10") = resolveTemp (
+			var("9"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("10"))
+				)
+		)),
+		(var("value")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) oclVar("a") . prop("name"))
+				),
+			(prop("type") <- let var("11") = (metamodel("CD") ! cid("Classifier")) oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) in
+		let var("12") = resolveTemp (
+			var("11"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("12"))
+				)
+		))
+		)
+}
+rule proc("ClassAttribute2Column") {
+	from var("a") : (metamodel("CD") ! cid("Attribute")) in var("IN")((
+						(DSL#Bool) ((oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) . oclIsKindOf (
+										(metamodel("CD") ! cid("Class"))
+									) and ( (not (oclVar("a") . prop("multiValued"))) )))
+					) ) 
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) (oclVar("a") . prop("name") + "Id"))
+				),
+			(prop("type") <- let var("13") = thisModule . proc("objectIdType") in let var("14") = var("13") in
+		let var("15") = resolveTemp (
+			var("14"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("15"))
+				)
+		))
+		)
+}
+rule proc("MultiValuedClassAttribute2Column") {
+	from var("a") : (metamodel("CD") ! cid("Attribute")) in var("IN")((
+						(DSL#Bool) ((oclVar("a") . prop("type") -> asSequence ( ) -> first ( ) . oclIsKindOf (
+										(metamodel("CD") ! cid("Class"))
+									) and oclVar("a") . prop("multiValued")))
+					) ) 
+	to 
+		((var("out")  :  (metamodel("Relational") ! cid("Table")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) ((oclVar("a") . prop("owner") -> asSequence ( ) -> first ( ) . prop("name") + "_") + oclVar("a") . prop("name")))
+				),
+			(prop("col") <- (
+					(metamodel("Relational") ! cid("Column")) Sequence {oclVar("id"), oclVar("foreignKey") })
+				)
+		)),
+		(var("id")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) (oclVar("a") . prop("owner") -> asSequence ( ) -> first ( ) . prop("name") + "Id"))
+				),
+			(prop("type") <- let var("16") = thisModule . proc("objectIdType") in let var("17") = var("16") in
+		let var("18") = resolveTemp (
+			var("17"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("18"))
+				)
+		)),
+		(var("foreignKey")  :  (metamodel("Relational") ! cid("Column")) in var("OUT")
+		(	(prop("name") <- (
+					(DSL#String) (oclVar("a") . prop("name") + "Id"))
+				),
+			(prop("type") <- let var("19") = thisModule . proc("objectIdType") in let var("20") = var("19") in
+		let var("21") = resolveTemp (
+			var("20"),
+			val("out")
+		) in (
+					(metamodel("Relational") ! cid("Type")) oclVar("21"))
+				)
+		))
+		)
+}
+helper def : proc("objectIdType") : (metamodel("CD") ! cid("DataType")) = 
+(metamodel("CD") ! cid("DataType"))   (metamodel("CD") ! cid("DataType")) . allInstances (
+  			) -> select (
+  				oclVar("e") | (oclVar("e") . prop("name") = "Integer") 
+  			) -> asSequence (
+ 		) -> first (
+		)
+ ;
+
+  ) .
+endm
+
+rew 
+atlInit(
+	ruleStore(noAtlRule) 
+	| procEnv( empty ) 
+	| trace(empty,empty,empty)
+	| resolveTempClasses( ((metamodel("CD") ! cid("DataType"))) )
+	| atlStmt(trafo) 
+	| queryDomain(var("IN"), inModel, inNew, ((metamodel("CD") ! cid("Attribute")) |-> 0
+    |-> (0 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop(
+    "classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 0)) . loc(prop(
+    "attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 0))), 1 |-> (loc(
+    oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(
+    oid(metamodel("CD") ! cid("Class"), 0)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 1))), 2 |-> (loc(oid(metamodel("CD") !
+    cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD") !
+    cid("Class"), 0)) . loc(prop("attr")) . loc(oid(metamodel("CD") ! cid(
+    "Attribute"), 2))), 3 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) .
+    loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 0)) .
+    loc(prop("attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 3))), 4 |->
+    (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) .
+    loc(oid(metamodel("CD") ! cid("Class"), 1)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 4))), 5 |-> (loc(oid(metamodel("CD") !
+    cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD") !
+    cid("Class"), 1)) . loc(prop("attr")) . loc(oid(metamodel("CD") ! cid(
+    "Attribute"), 5))), 6 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) .
+    loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 1)) .
+    loc(prop("attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 6))), 7 |->
+    (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) .
+    loc(oid(metamodel("CD") ! cid("Class"), 1)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 7))), 8 |-> (loc(oid(metamodel("CD") !
+    cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD") !
+    cid("Class"), 2)) . loc(prop("attr")) . loc(oid(metamodel("CD") ! cid(
+    "Attribute"), 8))), 9 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) .
+    loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 2)) .
+    loc(prop("attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 9))), 10
+    |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop(
+    "classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 2)) . loc(prop(
+    "attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 10))), 11 |-> (loc(
+    oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(
+    oid(metamodel("CD") ! cid("Class"), 2)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 11))), 12 |-> (loc(oid(metamodel("CD")
+    ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD")
+    ! cid("Class"), 3)) . loc(prop("attr")) . loc(oid(metamodel("CD") ! cid(
+    "Attribute"), 12))), 13 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1))
+    . loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 3)) .
+    loc(prop("attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 13))), 14
+    |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop(
+    "classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 3)) . loc(prop(
+    "attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 14))), 15 |-> (loc(
+    oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(
+    oid(metamodel("CD") ! cid("Class"), 3)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 15))), 16 |-> (loc(oid(metamodel("CD")
+    ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD")
+    ! cid("Class"), 4)) . loc(prop("attr")) . loc(oid(metamodel("CD") ! cid(
+    "Attribute"), 16))), 17 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1))
+    . loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 4)) .
+    loc(prop("attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 17))), 18
+    |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop(
+    "classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 4)) . loc(prop(
+    "attr")) . loc(oid(metamodel("CD") ! cid("Attribute"), 18))), 19 |-> (loc(
+    oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(
+    oid(metamodel("CD") ! cid("Class"), 4)) . loc(prop("attr")) . loc(oid(
+    metamodel("CD") ! cid("Attribute"), 19)))), (metamodel("CD") ! cid(
+    "Class")) |-> 0 |-> (0 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) .
+    loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 0))), 1
+    |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop(
+    "classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 1))), 2 |-> (loc(
+    oid(metamodel("CD") ! cid("Package"), 1)) . loc(prop("classifiers")) . loc(
+    oid(metamodel("CD") ! cid("Class"), 2))), 3 |-> (loc(oid(metamodel("CD") !
+    cid("Package"), 1)) . loc(prop("classifiers")) . loc(oid(metamodel("CD") !
+    cid("Class"), 3))), 4 |-> (loc(oid(metamodel("CD") ! cid("Package"), 1)) .
+    loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid("Class"), 4)))), (
+    metamodel("CD") ! cid("DataType")) |-> 0 |-> (0 |-> (loc(oid(metamodel(
+    "CD") ! cid("Package"), 0)) . loc(prop("classifiers")) . loc(oid(metamodel(
+    "CD") ! cid("DataType"), 0))), 1 |-> (loc(oid(metamodel("CD") ! cid(
+    "Package"), 0)) . loc(prop("classifiers")) . loc(oid(metamodel("CD") ! cid(
+    "DataType"), 1)))), (metamodel("CD") ! cid("Package")) |-> 0 |-> (0 |->
+    loc(oid(metamodel("CD") ! cid("Package"), 0)), 1 |-> loc(oid(metamodel(
+    "CD") ! cid("Package"), 1)))), 0 |-> sentinel, empty)
+	| domain(var("OUT"), (0 |-> sentinel), (outNew), (outLoc), (0 |-> sentinel), empty)
+) .

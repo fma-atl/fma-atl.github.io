@@ -1,0 +1,56 @@
+fmod JSON-BASIC is
+  sorts  JsonDoc JsonOid .
+endfm
+
+view JsonOid from TRIV to JSON-BASIC is
+  sort Elt to JsonOid .
+endv
+
+view JsonDoc from TRIV to JSON-BASIC is
+  sort Elt to JsonDoc .
+endv
+
+fmod JSON-ARRAY{X :: TRIV} is
+  sorts JsonArray{X} JsonArrayEltList{X} .
+  subsort X$Elt < JsonArrayEltList{X} .
+  op _`,_ : JsonArrayEltList{X} JsonArrayEltList{X} -> JsonArrayEltList{X} [ctor assoc id: noDoc prec 25] .
+  op noDoc : -> JsonArrayEltList{X} [ctor] .
+  op [_] : JsonArrayEltList{X} -> JsonArray{X} [ctor] .
+  op [`] : -> JsonArray{X} [ctor] .
+endfm
+
+mod JSON is
+  pr JSON-ARRAY{Int} * (op [`] to intArray0 ).
+  pr JSON-ARRAY{String} * (op [`] to strArray0 ).
+  pr JSON-ARRAY{Bool} * (op [`] to strArray0 ).
+  pr JSON-ARRAY{Float} * (op [`] to floatArray0 ).
+  pr JSON-ARRAY{JsonOid} * (op [`] to oidArray0 ).
+  pr JSON-ARRAY{JsonDoc} * (op [`] to docArray0 ).
+  
+  
+  
+  
+  sorts JsonDocProp JsonDocPropSet JsonDataType .
+  op {_} : JsonDocPropSet -> JsonDoc [ctor] .
+  
+  op _`,_ : JsonDocPropSet JsonDocPropSet -> JsonDocPropSet [ctor assoc id: none comm prec 25] .
+  op none : -> JsonDocPropSet . 
+  
+  subsort JsonDocProp < JsonDocPropSet .
+  op _:_ : String String -> JsonDocProp [prec 20] .
+  op _:_ : String Int -> JsonDocProp [prec 20] .
+  op _:_ : String Float -> JsonDocProp [prec 20] .
+  op _:_ : String Bool -> JsonDocProp [prec 20] .
+  
+  
+  
+  
+  op _:oid_ : String JsonOid -> JsonDocProp [prec 20] .
+  op _:oid_ : String JsonArray{JsonOid} -> JsonDocProp [prec 20] .
+  op _:_ : String JsonDoc -> JsonDocProp [prec 20] .
+  op _:_ : String JsonArray{JsonDoc} -> JsonDocProp [prec 20] .
+  
+  
+  op {"$oid"`:_} : String -> JsonOid .
+  
+endm
