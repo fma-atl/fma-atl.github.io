@@ -6,7 +6,7 @@ FMA-ATL is an executable formalization of a large excerpt of the model transform
 
 ## Modelling, Simulation and Verification of EMF-based Systems  
 
-FMA-ATL enables ATL both for modelling and verifying EMF-based systems, i.e. systems whose state models are represented as Ecore models. In particular, 
+FMA-ATL enables ATL both for modelling and for verifying EMF-based systems, i.e. systems whose state models are represented as Ecore models. In particular, 
 it reuses Maude’s verification tools both to perform (possibly bounded) model checking of invariants and to model check LTL formulas in the resulting system models.
 
 Several examples are available:
