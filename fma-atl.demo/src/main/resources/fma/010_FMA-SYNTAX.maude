@@ -103,7 +103,7 @@ mod FMA-SYNTAX is
   op set : PropName Expr -> SingletonStmt  .
   op setCmt : PropName Expr -> SingletonStmt .  
   op unset : PropName -> SingletonStmt . 
-  op unset : PropName VarExpr -> SingletonStmt .   
+  op unset : PropName Expr -> SingletonStmt .   
   
   
   

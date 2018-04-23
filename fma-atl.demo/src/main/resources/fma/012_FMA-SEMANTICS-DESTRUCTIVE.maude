@@ -80,7 +80,7 @@ mod FMA-SEMANTICS-DESTRUCTIVE is
   
   
   
-
+***(
   crl [E-RefUniUnset] :
     fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | stmt(unset(P, X)))  
   => 
@@ -115,6 +115,118 @@ mod FMA-SEMANTICS-DESTRUCTIVE is
   /\ 
     
     P2 := op(MTN ! SC, P) .
+)
+
+
+
+
+***(
+  crl [E-UnsetRef-Expr] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(unset(P, EXPR)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(unset(P,V')))
+  if 
+    notValueExpr?(EXPR)
+  /\    
+    exprK(EK:K | exprEnv(E) | expr(EXPR)) => exprK(output(V')) .
+
+
+  
+  rl [E-UnsetRefSingletonCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> sentinel)))))
+  =>   
+    fmaK(K | stmt( () )) .
+    
+  crl [E-RefCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> oid(C,I2)) IS))))
+  =>   
+    fmaK(K'' | stmt( () ))
+  if
+  
+  
+    fmaK(K | stmt(unset(P, val(oid(C,I2)))))
+    => 
+    fmaK(K' | stmt( () )) 
+  /\  
+    fmaK(K' | stmt(unset(P, ref(IS))))
+    => 
+    fmaK(K'' | stmt( () )) .
+)
+
+
+
+  crl [E-Unset-Expr] :
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(unset(P, EXPR)))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    notValueExpr?(EXPR)
+  /\
+  exprK(EK:K | exprEnv(E) | expr(EXPR)) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(unset(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+  
+  
+  
+
+
+  
+  rl [E-UnsetSingletonCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> sentinel)))))
+  =>   
+    fmaK(K | stmt( () )) .
+
+    
+  crl [E-UnsetCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> oid(C,I2)) IS))))
+  =>   
+    fmaK(K'' | stmt( () ))
+  if
+    
+    fmaK(K | stmt(unset(P, val(oid(C,I2)))))
+    => 
+    fmaK(K' | stmt( () )) 
+  /\  
+    fmaK(K' | stmt(unset(P, ref(IS))))
+    => 
+    fmaK(K'' | stmt( () )) .
+
+
+
+  
+  crl [E-RefUniUnset] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | stmt(unset(P, val(O))))  
+  => 
+    
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | stmt( () )) 
+  if 
+    oid(MTN ! SC, OID) := deepestOid(L)
+  /\
+    lower(MTN ! SC, P) < (| IS | +N 1) 
+  /\ 
+    
+    
+    hasOppositeRef(MTN ! SC, P) =/= true 
+  .
+    
+  crl [E-RefBiUnset] :
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref((I |-> O) IS), PS) | pendingActions((SAIS, (I2 |-> sentinel))) | stmt(unset(P, val(O))))  
+  => 
+    
+    
+    fmaK(K | env(E) | model(iOS) | focus(L) | ps(P = ref(IS), PS) | pendingActions(((I2 |-> unset(O,P2,oid(MTN ! SC, OID))), SAIS, ((I2 +N 1) |-> sentinel))) | stmt( () )) 
+  if 
+    oid(MTN ! SC, OID) := deepestOid(L)
+  /\
+    lower(MTN ! SC, P) < (| IS | +N 1) 
+  /\ 
+    
+    P2 := op(MTN ! SC, P) .
 
 
 	
@@ -133,6 +245,8 @@ mod FMA-SEMANTICS-DESTRUCTIVE is
   
   eq isolated( iOS, iOS' ) = intersection(oids(iOS), refs(iOS')) == emptyOidSet .
 
+
+***(
   
   
   crl [E-CmtUnset] :
@@ -149,6 +263,68 @@ mod FMA-SEMANTICS-DESTRUCTIVE is
     isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == true
   /\
     E' := delete(oids(I |-> { prop("_id") = val(O), PS }), E) .
+)
+
+
+     
+***(
+  crl [E-UnsetCmt-Expr] :
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(unset(P, EXPR)))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    notValueExpr?(EXPR)
+  /\
+  exprK(EK:K | exprEnv(E) | expr(EXPR)) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(unset(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
+
+  
+  
+  
+
+
+  
+  rl [E-UnsetCmtSingletonCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> sentinel)))))
+  =>   
+    fmaK(K | stmt( () )) .
+
+    
+  crl [E-CmtCollection] :
+    fmaK(K | stmt(unset(P, ref((I |-> oid(C,I2)) IS))))
+  =>   
+    fmaK(K'' | stmt( () ))
+  if
+    
+    fmaK(K | stmt(unset(P, val(oid(C,I2)))))
+    => 
+    fmaK(K' | stmt( () )) 
+  /\  
+    fmaK(K' | stmt(unset(P, ref(IS))))
+    => 
+    fmaK(K'' | stmt( () )) .
+)
+
+
+  
+  
+  crl [E-UnsetCmt] :
+    fmaK(K | env(E) | model(iOS1) | focus(L) | ps(P = val(((I |-> { prop("_id") = val(O), PS }) iOS)), PS') | stmt(unset(P, val(O))))  
+  => 
+    fmaK(K | env(E') | model(iOS1) | focus(L) | ps(P = val(iOS), PS') | stmt( () ))
+  if 
+    lower(getCid(deepestOid(L)), P) < (| iOS | +N 1)
+  /\
+    isolated((I |-> { prop("_id") = val(O), PS }), iOS1) == true
+  /\
+    E' := delete(oids(I |-> { prop("_id") = val(O), PS }), E) .
+
+  
 
 endm
 

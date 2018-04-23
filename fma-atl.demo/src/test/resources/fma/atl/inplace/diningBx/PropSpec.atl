@@ -1,0 +1,11 @@
+-- @path dP=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/diningBx/diningBx.ecore
+module dining;
+
+create OUT: dP refining IN: dP;
+
+helper def : sharedFork : Boolean =
+	dP!Phil.allInstances()->exists(p1 |
+		dP!Phil.allInstances()->exists(p2 |
+			p1 <> p2 and p1.hold->exists(f | f.holders.includes(p2) )
+		)
+	);

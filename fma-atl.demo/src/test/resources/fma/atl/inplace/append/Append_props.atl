@@ -1,0 +1,15 @@
+-- @path append=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/append/Append.ecore
+module append;
+
+create OUT: append refining IN: append;
+
+helper def : Shared : Boolean =
+append!Cell.allInstances()->exists(c1 | append!Cell.allInstances()->exists(c2 | c1 <> c2 and c1.val=c2.val ));
+
+helper def : NotIsolated : Boolean =
+append!Cell.allInstances()->exists(c | append!Append.allInstances()->exists(a | a.x=c.val ) );
+	
+helper def : NotTerminated : Boolean =
+append!Append.allInstances()->exists(a | a.active );
+	
+	

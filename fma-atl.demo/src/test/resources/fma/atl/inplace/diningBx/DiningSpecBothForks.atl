@@ -1,0 +1,45 @@
+-- @path dP=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/diningBx/diningBx.ecore
+module dining;
+
+create OUT: dP refining IN: dP;
+
+rule getHungry {
+	from p1 : dP!Phil (
+		p1.status = 'think'
+	)
+	to p1__ref : dP!Phil (
+		status <- 'hungry'
+	)
+}
+
+rule getBothForks {
+	from p1 : dP!Phil (
+		p1.status = 'hungry' and
+		p1.left.holders.oclIsUndefined() and
+		p1.right.holders.oclIsUndefined()
+	)
+	to p1__ref : dP!Phil (
+		status <- 'eat',
+		hold <- Sequence { p1.left, p1.right } 
+	)
+}
+
+rule finishEating {
+	from p1 : dP!Phil (
+		p1.status = 'eat' 
+	)
+	to p1__ref : dP!Phil (
+		status <- 'hasR',
+		hold__unset <- p1.left --- will this work?
+	)
+}
+
+rule releaseRightFork {
+	from p1 : dP!Phil (
+		p1.status = 'hasR' 
+	)
+	to p1__ref : dP!Phil (
+		status <- 'think',
+		hold__unset <- p1.right --- will this work?
+	)
+}

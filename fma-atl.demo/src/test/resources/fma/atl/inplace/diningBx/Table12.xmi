@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dpBx:Table xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:dpBx="http://fma-atl.github.io/diningPhilosophersBx">
+  <phils name="P1" status="think" left="//@forks.11" right="//@forks.0"/>
+  <phils name="P2" status="think" left="//@forks.0" right="//@forks.1"/>
+  <phils name="P3" status="think" left="//@forks.1" right="//@forks.2"/>
+  <phils name="P4" status="think" left="//@forks.2" right="//@forks.3"/>
+  <phils name="P5" status="think" left="//@forks.3" right="//@forks.4"/>
+  <phils name="P6" status="think" left="//@forks.4" right="//@forks.5"/>
+  <phils name="P7" status="think" left="//@forks.5" right="//@forks.6"/>
+  <phils name="P8" status="think" left="//@forks.6" right="//@forks.7"/>
+  <phils name="P9" status="think" left="//@forks.7" right="//@forks.8"/>
+  <phils name="P10" status="think" left="//@forks.8" right="//@forks.9"/>
+  <phils name="P11" status="think" left="//@forks.9" right="//@forks.10"/>
+  <phils name="P12" status="think" left="//@forks.10" right="//@forks.11"/>
+  <forks id="F1-2"/>
+  <forks id="F2-3"/>
+  <forks id="F3-4"/>
+  <forks id="F4-5"/>
+  <forks id="F5-6"/>
+  <forks id="F6-7"/>
+  <forks id="F7-8"/>
+  <forks id="F8-9"/>
+  <forks id="F9-10"/>
+  <forks id="F10-11"/>
+  <forks id="F11-12"/>
+  <forks id="F12-1"/>
+</dpBx:Table>

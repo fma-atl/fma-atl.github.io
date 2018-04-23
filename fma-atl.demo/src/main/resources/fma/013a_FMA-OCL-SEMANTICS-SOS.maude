@@ -162,7 +162,7 @@ mod FMA-OCL-SEMANTICS-SOS is
   eq fmaValToOclVal( (I |-> sentinel).IObjectSet, I, OclL ) = OclL .
    
   eq fmaValToOclVal( (I |-> { prop("_id") = val(O), PS }) OS, I, OclL ) = 
-    fmaValToOclVal( OS, I +N 1, (O, OclL) ) . 
+    fmaValToOclVal( OS, I +N 1, (OclL, O) ) . 
   
   
   ceq fmaValToOclVal( (I2 |-> sentinel).IObjectSet OS, I, OclL ) = 
@@ -175,7 +175,7 @@ mod FMA-OCL-SEMANTICS-SOS is
   eq fmaValToOclVal( (I |-> sentinel).IOidSet, I, OclL ) = OclL . 
   
   eq [fmaValToOclVal-oid-matched] : fmaValToOclVal( (I |-> oid(C,I3:Int)) IS, I, OclL ) = 
-    fmaValToOclVal( IS, I +N 1, (oid(C,I3:Int), OclL) ) .
+    fmaValToOclVal( IS, I +N 1, (OclL, oid(C,I3:Int)) ) .
   
   
   ceq [fmaValToOclVal-oid-not-matched] : fmaValToOclVal( IS (I2 |-> sentinel).IOidSet, I, OclL ) = 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:a="http://fma-atl.github.io/inplace/append">
+  <a:Append x="" return="true" this="/2"/>
+  <a:Append x="" return="true" this="/2"/>
+  <a:Cell val="a">
+    <next val="b">
+      <next val="c"/>
+    </next>
+  </a:Cell>
+</xmi:XMI>

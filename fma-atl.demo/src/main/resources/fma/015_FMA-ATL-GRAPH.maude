@@ -296,6 +296,9 @@ mod EMF-GRAPH is
   eq getCmts( cmt(VAR, P, EXPR), resolveTemp(AUX:VarExpr,VAL:ValueExpr) ) =
     empty .
   
+  eq getCmts( cmt(VAR, P, EXPR), unset(EXPR1) ) =
+    cmt(VAR, P, unset(EXPR1)) .    
+  
   ceq getCmts( cmt(VAR, P, EXPR), (SCALAR) OCLE ) =
     (
         cmt(VAR, P, EXPR2),
@@ -338,6 +341,9 @@ mod EMF-GRAPH is
 
   
   op deleteVars : Expr -> Expr .
+  eq deleteVars(EXPR) = EXPR .
+
+***(  
   eq deleteVars( TVAR ) = TVAR .
   eq deleteVars( let VAR2 = EXPR1 in EXPR2 ) = 
     let VAR2 = deleteVars(EXPR1) in deleteVars(EXPR2) .
@@ -353,7 +359,7 @@ mod EMF-GRAPH is
   eq deleteVars( OCLE -> ITN:IteratorName ( PL:List{OclExp} | BOCLE ) ) =  
     deleteVars( OCLE ) -> ITN:IteratorName ( PL:List{OclExp} | BOCLE ) .
   eq deleteVars( OCLE ) = OCLE [owise] .
-
+)
 
   
   
@@ -743,6 +749,7 @@ mod EMF-GRAPH is
 
   op isFmaCmtOther : Expr -> Bool .
   eq isFmaCmtOther( resolveTemp(EXPR, V:ValueExpr) ) = false .
+  eq isFmaCmtOther( unset(EXPR) ) = false .
   eq isFmaCmtOther( EXPR:Expr ) = true [owise] .
 
 
@@ -942,6 +949,11 @@ mod EMF-GRAPH is
 )
 
   
+  eq getFmaAttsRefs( SVAR, emfGraph(NS, (edge(SVAR, P, unset(EXPR) ), ES)), N:Nat ) =
+    unset(P, EXPR) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) . 
+
+  
   ceq getFmaAttsRefs( SVAR, emfGraph(NS, (edge(SVAR, P, resolveTemp(EXPR, V:ValueExpr) ), ES)), N:Nat ) =
   	let var(X:String) = (resolveTemp(EXPR, V:ValueExpr)) in set(P, var(X:String)) ; 
     getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) 
@@ -955,6 +967,7 @@ mod EMF-GRAPH is
  
   op isFmaAttsRefsOther : Expr -> Bool .
   eq isFmaAttsRefsOther(resolveTemp(EXPR, V:ValueExpr)) = false .
+  eq isFmaAttsRefsOther(unset(EXPR)) = false .
   eq isFmaAttsRefsOther( E:Expr ) = true [owise] .
    
 
@@ -962,6 +975,10 @@ mod EMF-GRAPH is
 
   
   
+  eq getFmaAttsRefs( SVAR, emfGraph(NS, (cmt(SVAR, P, unset(EXPR) ), ES)), N:Nat ) =
+    unset(P, EXPR) ; 
+    getFmaAttsRefs( SVAR, emfGraph(NS, ES), N:Nat +N 1 ) .
+
   
   eq getFmaAttsRefs( 
     SVAR, 

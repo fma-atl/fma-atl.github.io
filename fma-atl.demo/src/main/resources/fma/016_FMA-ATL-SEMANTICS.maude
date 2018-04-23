@@ -67,7 +67,9 @@ mod FMA-ATL-SEMANTICS is
   
 
 
-
+  op isNormal? : Object -> Bool . 
+  eq isNormal?({ prop("mode") = val("normal"), PS }) = true .
+  eq isNormal?(Obj:Object) = false [owise] .
 
   op isInPlace? : Object -> Bool . 
   eq isInPlace?({ prop("mode") = val("in-place"), PS }) = true .
@@ -1442,7 +1444,7 @@ mod FMA-ATL-SEMANTICS is
 
 
 
-
+***(
   
   
   
@@ -1503,7 +1505,7 @@ mod FMA-ATL-SEMANTICS is
         emfGraph( NS:Set{EmfNode}, ES:Set{EmfEdge} )
       )
     ) .
-  
+)  
     
     
   
@@ -1549,7 +1551,7 @@ mod FMA-ATL-SEMANTICS is
     emfGraph( NS:Set{EmfNode}, (cmt(S:VarExpr, P:PropName, E:Expr), ES:Set{EmfEdge}) )
   if isCont(P:PropName, cl(C:QualifiedCid)) .
 
-  
+
  
 
 
@@ -1684,7 +1686,6 @@ mod FMA-ATL-SEMANTICS is
         ML2
       )
       | trace(GlobalM1, LocalM1, HM1)
-      | mode(normal)
     ) 
   =>
     atlMatchingK(
@@ -1712,9 +1713,10 @@ mod FMA-ATL-SEMANTICS is
         disableMatch(ML2, O:Oid) 
       )
       | trace(GlobalM4, LocalM4, HM4)
-      | mode(normal)
     )   
   if
+    isNormal?(runtimeOptions) == true
+  /\
 ***(
       
       L:Location := LOC [ O:Oid ]
@@ -1752,7 +1754,6 @@ mod FMA-ATL-SEMANTICS is
   /\
     atlK(
       K:K 
-
         | queryDomain(
           MODEL:VarExpr, 
           ((0 |-> Obj:Object) (1 |-> sentinel)), 
@@ -1812,7 +1813,6 @@ mod FMA-ATL-SEMANTICS is
         ML2
       )
       | trace(GlobalM1, LocalM1, HM1)
-      | mode(refining)
     ) 
   =>
     atlMatchingK(
@@ -1833,9 +1833,10 @@ mod FMA-ATL-SEMANTICS is
         disableMatch(ML2, O:Oid) 
       )
       | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
-      | mode(refining)
     )   
   if
+    isRefining?(runtimeOptions) == true
+  /\
     
     L2:Location := get(O:Oid, OUTLOC)
   /\
@@ -1847,6 +1848,7 @@ mod FMA-ATL-SEMANTICS is
   /\
     atlK(
       K:K 
+      | mode(normal) 
       | queryDomain(
         MODEL:VarExpr, 
         ((0 |-> Obj:Object) (1 |-> sentinel)), 
@@ -1867,6 +1869,7 @@ mod FMA-ATL-SEMANTICS is
   => 
     atlK(
       K':K 
+      | mode(normal)
       | queryDomain(MODEL:VarExpr, M2:IObjectSet, NEW, LOC2, SandpitOS2, LOC2)  
       
       | domain(OUT:VarExpr, OUTM2:IObjectSet, OUTNEW2, OUTLOC2, OUTSandpitOS2, OUTSandpitLOC2)  
@@ -1896,7 +1899,6 @@ mod FMA-ATL-SEMANTICS is
       )
       | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
       | trace(GlobalM1, LocalM1, HM1)
-      | mode(in-place)
       
       | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
       
@@ -1916,7 +1918,6 @@ mod FMA-ATL-SEMANTICS is
         empty               
       )  
       | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
-      | mode(in-place)
       
       | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
       
@@ -1925,6 +1926,8 @@ mod FMA-ATL-SEMANTICS is
       | matchPool( MP2:List{WeightedMatch<=} )
     )   
   if
+    isInPlace?(runtimeOptions) == true
+  /\
     
     O:Oid := findEnablingMatch( C:QualifiedCid, V:VarExpr, FC:OclExp, OUTOS, (GlobalM1, LocalM1, HM1), var(empty) new(OUTNEW) loc(OUTLOC) )  
   /\
@@ -2006,7 +2009,6 @@ mod FMA-ATL-SEMANTICS is
       )
       | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
       | trace(GlobalM1, LocalM1, HM1)
-      | mode(in-place)
       
       | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
       
@@ -2026,7 +2028,6 @@ mod FMA-ATL-SEMANTICS is
         empty               
       )  
       | trace(GlobalM3, empty, merge(HM1, LocalM3)) 
-      | mode(in-place)
       
       | queryDomain(MODEL:VarExpr, OS, NEW, LOC, SandpitOS, SandpitLOC)  
       
@@ -2035,6 +2036,8 @@ mod FMA-ATL-SEMANTICS is
       | matchPool( MP2:List{WeightedMatch<=} )
     )   
   if
+    isInPlace?(runtimeOptions) == true
+  /\
     
     
     
@@ -2047,8 +2050,15 @@ mod FMA-ATL-SEMANTICS is
       )
   /\
     
-    ref((N2:Nat |-> sentinel)(N1:Nat |-> O:Oid) IS1:IOidSet) := RES:ValueExpr 
+    ref((N1:Nat |-> O:Oid) IS1:IOidSet (N2:Nat |-> sentinel)) := RES:ValueExpr 
+***(
+
   /\ 
+  
+
+    
+
+
     
     L2:Location := get(O:Oid, OUTLOC)
   /\
@@ -2057,9 +2067,10 @@ mod FMA-ATL-SEMANTICS is
     < Cxt:IObjectSet ; (I:Int |-> Obj:Object) > := unplug(OUTOS, L:Location)  
   /\
     OUTLOC2 := buildLocStore( (0 |-> Obj:Object) (1 |-> sentinel) )
+)
   /\
     atlK(
-      K:K 
+      K:K
         | ruleStore(  
           atlRule(
             RN:ProcName, 
@@ -2073,15 +2084,19 @@ mod FMA-ATL-SEMANTICS is
         )
         | queryDomain(
           OUT:VarExpr, 
-          ((0 |-> Obj:Object) (1 |-> sentinel)), 
+          
+          OUTOS, 
           OUTNEW, 
           
           
           
           
-          OUTLOC2,
-          ((0 |-> Obj:Object) (1 |-> sentinel)), 
-          OUTLOC2
+          
+          OUTLOC, 
+          
+          
+          OUTOS,
+          OUTLOC
         )  
         | domain(OUT:VarExpr, 0 |-> sentinel, OUTNEW, empty, OUTOS, OUTLOC)  
         | match( match(RN:ProcName, (V:VarExpr |-> val(O:Oid))) ) 
@@ -2301,6 +2316,8 @@ mod FMA-ATL-SEMANTICS is
       | match( noMatch )
     )   
   if 
+    isInPlace?(runtimeOptions) =/= true
+  /\
     atlDomainK(
       K:K 
       | procEnv(EP:EnvP) 
@@ -2329,6 +2346,65 @@ mod FMA-ATL-SEMANTICS is
     ) .
 
 
+
+  
+  crl [E-AtlLazyRuleSideEffects-InPlace] :
+    atlK( 
+      K:K 
+      | procEnv(EP:EnvP) 
+      | queryDomain(MODEL:VarExpr, M:IObjectSet, NEW, LOC, SandpitOS, SandpitLOC)  
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)  
+
+      | ruleStore(  
+        atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr, 
+            (DSL#Bool) OCLE:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | match( match(RN:ProcName, SUBS:Map{VarExpr,ValueExpr}) )
+    ) 
+  =>
+    atlK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | match( noMatch )
+    )   
+  if 
+    isInPlace?(runtimeOptions) == true
+  /\
+    atlDomainK(
+      K:K 
+      | procEnv(EP:EnvP) 
+      
+      | domain(OUT:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)
+      | queryDomain(MODEL:VarExpr, OUTOS, OUTNEW, OUTLOC, OUTSandpitOS, OUTSandpitLOC)
+
+      | ruleStore(  
+        atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            V:VarExpr,
+            MODEL2:VarExpr, 
+            (DSL#Bool) OCLE:OclExp, 
+          DSS:DomainStmtSet
+        )  
+        ARS:AtlRuleSet    
+      )
+      | env(var(SUBS:Map{VarExpr,ValueExpr})) 
+      | actions(DSS:DomainStmtSet)
+    ) 
+  => 
+    atlDomainK(
+      K':K 
+      | procEnv(EP:EnvP) 
+      | env(E:Env) 
+      | actions( noDomainStmt )
+    ) .
 
   
   
@@ -2412,6 +2488,8 @@ mod FMA-ATL-SEMANTICS is
       | stmt( () )
     ) 
   if 
+    isInPlace?(runtimeOptions) =/= true
+  /\
   
   
   
@@ -2449,6 +2527,155 @@ mod FMA-ATL-SEMANTICS is
             (1 |-> sentinel)         
           ),          
           SandpitLOC 
+
+      )   
+      | trace(GlobalM1,LocalM1)    
+      | match( match( RN:ProcName, SVAR:VarExpr |-> val(O:Oid) ) )
+    ) 
+    => 
+    atlK(
+      AK':K 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap}) 
+      )  
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,
+          NEW,  
+          GLOC,
+          OS2:IObjectSet,             
+          LOC       
+        ) 
+      | trace(GlobalM2,LocalM2) 
+      | match( noMatch )
+    ) .
+
+
+ 
+  
+  crl [E-SetCmtUniLazyRuleInv-InPlace] :
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc(SandpitLOC) 
+        new(SNEW)
+      ) 
+      | model(iOS1:IObjectSet)
+      | focus(L:Location)
+      | ps(P:PropName = val(OS1:IObjectSet), PS:PropSet)
+      | pendingActions( SAIS:IActionSet ) 
+      | extExprK(
+        EK:K
+        | exprTrace(ETOS:Map{QualifiedCid,OuterTraceMap})
+      )       
+      | extAtlK(
+        AK:K 
+        | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+        | domain(MN2:VarExpr, M:IObjectSet, NEW1:Map{QualifiedCid,Oid}, GLOC, CxOS1:IObjectSet, LOC1:Map{QualifiedCid,OuterMap})  
+        | trace(GlobalM1,LocalM1) 
+      ) 
+      | stmt(setCmtLazyRule(P:PropName, RN:ProcName, val(O:Oid)))
+    )
+  => 
+    fmaK(
+      K:K 
+      | env(
+        var( VM1:Map{VarExpr,ValueExpr} ) 
+        loc( 
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          ) 
+        )                                        
+        new( NEW )   
+      )   
+      | model(iOS1:IObjectSet)             
+      | focus(L:Location)
+      
+      | ps(P:PropName = val(OS2:IObjectSet), PS:PropSet)     
+      | pendingActions( SAIS:IActionSet ) 
+      | extExprK(
+        EK:K
+        | exprTrace( (GlobalM2,LocalM2) ) 
+      ) 
+      | extAtlK(      
+        AK':K                                
+        | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,               
+          NEW,  
+          GLOC,
+          CxOS1:IObjectSet,           
+          merge(                           
+            prependPathPrefix(
+              L:Location,
+              P:PropName,
+              diff(LOC,SandpitLOC) 
+            ), 
+            SandpitLOC      
+          )       
+        ) 
+        | trace(GlobalM2,LocalM2)  
+      ) 
+      | stmt( () )
+    ) 
+  if 
+    isInPlace?(runtimeOptions) == true
+  /\
+  
+  
+  
+    oid(MTN:ModelTypeName ! SC:Cid, OID:Nat) := deepestOid(L:Location)
+  /\ 
+    
+    hasOppositeRef(MTN:ModelTypeName ! SC:Cid,P) =/= true
+  /\  
+    
+    atlK(
+      AK:K 
+      | extExprK(
+        EK:K
+        | exprTrace( (GlobalM1,LocalM1) ) 
+      )  
+      | ruleStore(ARS:AtlRuleSet (
+          atlLazyRule(
+            RN:ProcName, 
+            C:QualifiedCid, 
+            SVAR:VarExpr, 
+            MN:VarExpr, 
+            ME:Expr, 
+            DSS:DomainStmtSet
+          )
+        ))
+      
+      
+      | domain(
+          MN2:VarExpr, 
+          M:IObjectSet,   
+          SNEW, 
+          GLOC,
+          (
+
+            
+            OS1:IObjectSet 
+          ),          
+          
+          buildLocStore(OS1:IObjectSet) 
 
       )   
       | trace(GlobalM1,LocalM1)    

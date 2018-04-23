@@ -1,0 +1,10 @@
+-------------------------------------------------
+src/test/resources/fma/atl/inplace/append/Append.atl
+src/test/resources/fma/atl/inplace/append/List_02App_03Cell_sameValue.xmi
+state space generation: 
+rewrites: 3
+real time (ms): 0
+CPU time (ms): 0
+state space: [0:[0:1, 1:2], 1:[0:3], 2:[0:3, 1:4], 3:[0:5], 4:[0:5, 1:6], 5:[0:7], 6:[0:7, 1:8], 7:[0:9], 8:[0:9, 1:10], 9:[0:11], 10:[0:11], 11:[:]]
+no states = 12 
+no transitions = 16

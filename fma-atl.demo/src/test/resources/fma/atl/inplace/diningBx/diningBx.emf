@@ -1,0 +1,29 @@
+@namespace(uri="http://fma-atl.github.io/diningPhilosophersBx", prefix="dpBx")
+package dP;
+
+class Table {
+  val Phil[+] phils;
+  val Fork[+] forks;
+}
+
+class Phil {
+  attr String name;
+  attr String status;
+  ref Fork[1] left;
+  ref Fork[1] right;
+  ref Fork[0..2]#holders hold;
+}
+
+class Fork {
+  attr String ~id;
+  // fork knows who holds it
+  ref Phil[*]#hold holders;
+}
+
+enum Status {
+	think=0;
+	hungry=1;
+	hasL=2;
+	hasR=3;
+	eat=4;
+}

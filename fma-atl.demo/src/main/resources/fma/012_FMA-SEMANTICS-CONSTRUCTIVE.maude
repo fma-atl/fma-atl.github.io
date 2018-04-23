@@ -1007,6 +1007,47 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
 
 
 
+  
+  op appendPendingActions : Oid PropName Oid IObjectSet Int IActionSet -> IActionSet .
+  eq appendPendingActions( O1, P2, O2, iOS (I |-> sentinel), UPPER, SAIS ) =
+    if (| iOS | == UPPER) then
+      
+      insert(
+        insert(
+          SAIS,
+          unset(O1, P2, oid(iOS [ I -N 1 ]))
+        ),
+        set(O1, P2, O2)
+      )
+    else
+      insert(
+        SAIS,
+        set(O1, P2, O2)
+      )
+    fi .
+
+
+
+  
+  op appendPendingActions : Oid PropName Oid IOidSet Int IActionSet -> IActionSet .
+  eq appendPendingActions( O1, P2, O2, IS (I |-> sentinel), UPPER, SAIS ) =
+    if (| IS | == UPPER) then
+      
+      insert(
+        insert(
+          SAIS,
+          unset(O1, P2, IS [ I -N 1 ])
+        ),
+        set(O1, P2, O2)
+      )
+    else
+      insert(
+        SAIS,
+        set(O1, P2, O2)
+      )
+    fi .
+
+
 
 
 
@@ -1530,27 +1571,6 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
 
 
   
-  op appendPendingActions : Oid PropName Oid IObjectSet Int IActionSet -> IActionSet .
-  eq appendPendingActions( O1, P2, O2, iOS (I |-> sentinel), UPPER, SAIS ) =
-    if (| iOS | == UPPER) then
-      
-      insert(
-        insert(
-          SAIS,
-          unset(O1, P2, oid(iOS [ I -N 1 ]))
-        ),
-        set(O1, P2, O2)
-      )
-    else
-      insert(
-        SAIS,
-        set(O1, P2, O2)
-      )
-    fi .
-
-
-
-  
   
 
 
@@ -1614,17 +1634,6 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
   
   
 
-  crl [E-SetRef-Expr] :
-    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(set(P, EXPR)))  
-  => 
-    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(set(P,V')))
-  if 
-    notValueExpr?(EXPR)
-  /\    
-    exprK(EK:K | exprEnv(E) | expr(EXPR)) => exprK(output(V')) .
-
-
-
 ***(
   
 
@@ -1655,6 +1664,15 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
 
 )
 
+
+  crl [E-SetRef-Expr] :
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(set(P, EXPR)))  
+  => 
+    fmaK(K | env(E) | model(iOS) | extExprK(EK:K) | focus(L) | ps(P = ref(IS), PS) | stmt(set(P,V')))
+  if 
+    notValueExpr?(EXPR)
+  /\    
+    exprK(EK:K | exprEnv(E) | expr(EXPR)) => exprK(output(V')) .
 
 
   
@@ -1708,26 +1726,6 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
   .  
 
 
-  
-  op appendPendingActions : Oid PropName Oid IOidSet Int IActionSet -> IActionSet .
-  eq appendPendingActions( O1, P2, O2, IS (I |-> sentinel), UPPER, SAIS ) =
-    if (| IS | == UPPER) then
-      
-      insert(
-        insert(
-          SAIS,
-          unset(O1, P2, IS [ I -N 1 ])
-        ),
-        set(O1, P2, O2)
-      )
-    else
-      insert(
-        SAIS,
-        set(O1, P2, O2)
-      )
-    fi .
-
-
     
   
   
@@ -1778,22 +1776,6 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
   
   
 
-   
-  crl [E-Cmt-Expr] :
-    fmaK(K | extExprK(EK:K) | env(E) | stmt(setCmt(P, EXPR)))
-  =>   
-    fmaK(K' | stmt( () ))
-  if
-    notValueExpr?(EXPR)
-  /\
-  exprK(EK:K | exprEnv(E) | expr(EXPR)) 
-    => 
-    exprK(output(V))
-  /\
-    fmaK(K | extExprK(EK:K) | env(E) | stmt(setCmt(P, V)))
-    => 
-    fmaK(K' | stmt( () )) .
-
 ***(
   
 
@@ -1823,6 +1805,22 @@ mod FMA-SEMANTICS-CONSTRUCTIVE is
     => 
     fmaK(K' | stmt( () )) .
 )
+
+   
+  crl [E-Cmt-Expr] :
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(setCmt(P, EXPR)))
+  =>   
+    fmaK(K' | stmt( () ))
+  if
+    notValueExpr?(EXPR)
+  /\
+  exprK(EK:K | exprEnv(E) | expr(EXPR)) 
+    => 
+    exprK(output(V))
+  /\
+    fmaK(K | extExprK(EK:K) | env(E) | stmt(setCmt(P, V)))
+    => 
+    fmaK(K' | stmt( () )) .
 
   
   

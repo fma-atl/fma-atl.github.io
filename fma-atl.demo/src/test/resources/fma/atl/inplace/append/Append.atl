@@ -1,0 +1,67 @@
+-- @path append=/fma.interpreter.atl/src/test/resources/fma/atl/inplace/append/Append.ecore
+module append;
+
+create OUT: append refining IN: append;
+
+
+rule Append {
+  from a1 : append!Append (
+    a1.active and a1.this.val <> a1.x 
+    and a1.this.next.oclIsUndefined() 
+  ) using { 
+    c1 : append!Cell = a1.this;
+  } to a1__ref : append!Append (
+  	x <- '',
+    active <- false,
+    return <- true
+  ),
+  c2 : append!Cell (
+    val <- a1.x
+  ),
+  c1__ref : append!Cell (
+    next <- c2
+  )
+}
+
+
+rule Next {
+  from a1 : append!Append (
+    a1.active=true and a1.x <> a1.this.val 
+    and a1.callee.oclIsUndefined() 
+  ) using { 
+  	c : append!Cell = a1.this.next;
+  } to a1__ref : append!Append (
+      active <- false,
+      x <- '',
+      callee <- a2
+    ),
+    a2 : append!Append (
+      active <- true,
+      x <- a1.x,
+      this <- c
+    )
+}
+
+rule Found {
+  from a1 : append!Append (
+    a1.active and a1.x = a1.this.val
+  ) to a1__ref : append!Append (
+  	x <- '',
+    active <- false,
+    return <- true
+  )
+}
+
+
+rule Return {
+  from a1 : append!Append (
+    a1.return = true and 
+    not(a1.caller.oclIsUndefined()) 
+    and a1.callee.oclIsUndefined() 
+  ) using { 
+    caller : append!Append = a1.caller;
+  } to caller__ref : append!Append (
+  	return <- true,
+    callee__unset <- a1
+  )
+}

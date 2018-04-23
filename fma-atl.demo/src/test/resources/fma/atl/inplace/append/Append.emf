@@ -1,0 +1,20 @@
+@namespace(uri="http://fma-atl.github.io/inplace/append", prefix="a")
+package append;
+
+abstract class Root {
+	
+}
+
+class Append extends Root {
+	attr String x;
+	attr boolean active;
+	attr boolean return;
+	val Append[0..1]#caller callee;
+	ref Cell[0..1] this;
+	ref Append[0..1]#callee caller;
+}
+
+class Cell extends Root {
+	attr String ~val;
+	val Cell[0..1] next; 
+}

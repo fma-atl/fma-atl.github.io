@@ -115,8 +115,8 @@ mod FMA-ATL-SYNTAX is
   
   
   
-  sort AtlBindingExpr LazyRuleInvExpr ResolveTempInvExpr .
-  subsort ResolveTempInvExpr LazyRuleInvExpr < AtlBindingExpr < Expr   .
+  sort AtlBindingExpr LazyRuleInvExpr ResolveTempInvExpr UnsetBindingExpr .
+  subsort ResolveTempInvExpr LazyRuleInvExpr UnsetBindingExpr < AtlBindingExpr < Expr   .
   op resolveTemp`(_,_`) : Expr ValueExpr -> ResolveTempInvExpr .   
 
   
@@ -148,6 +148,8 @@ mod FMA-ATL-SYNTAX is
   op setCmtLazyRule : PropName ProcName Expr -> LazyRuleInvAtlStmt .
   
   
+
+  op unset : Expr -> UnsetBindingExpr .
   
   
   
