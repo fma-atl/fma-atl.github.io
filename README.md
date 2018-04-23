@@ -1,7 +1,7 @@
 # FMA-ATL
 
 FMA-ATL is an executable formalization of a large excerpt of the model transformation language [ATL](http://www.eclipse.org/atl/) in Maude, which uses the following front-end languages:
-* The [Eclipse Modeling Framework (EMF)](http://www.eclipse.org/modeling/emf/) for defining transformations
+* The [Eclipse Modeling Framework (EMF)](http://www.eclipse.org/modeling/emf/) for defining metamodels and their models
 * [ATL](http://www.eclipse.org/atl/) for defining model transformations
 
 ## Modelling, Simulation and Verification of EMF-based Systems  
